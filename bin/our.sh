@@ -29,13 +29,13 @@
 #n_test_class=24
 
 dataset=reuters
-data_path="data/reuters.json"
+data_path="../data/reuters.json"
 n_train_class=15
 n_val_class=5
 n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
-    python src/main.py \
+    python ../src/main.py \
         --cuda 0 \
         --way 5 \
         --shot 1 \
@@ -52,7 +52,7 @@ if [ "$dataset" = "fewrel" ]; then
         --meta_iwf \
         --meta_w_target
 else
-    python src/main.py \
+    python ../src/main.py \
         --cuda 0 \
         --way 5 \
         --shot 1 \
