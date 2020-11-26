@@ -9,6 +9,7 @@ from embedding.cnn import CNN
 from embedding.idf import IDF
 from embedding.meta import META
 from embedding.lstmatt import LSTMAtt
+from embedding.mlad import MLAD
 
 
 def get_embedding(vocab, args):
@@ -36,6 +37,9 @@ def get_embedding(vocab, args):
         model = LSTMAtt(ebd, args)
     elif args.embedding == 'ebd' and args.bert:
         model = ebd  # using bert representation directly
+
+    elif args.embedding == 'mlad':
+        model = MLAD(ebd, args)
 
     print("{}, Building embedding".format(
         datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
