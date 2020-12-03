@@ -1,29 +1,29 @@
 #dataset=amazon
-#data_path="data/amazon.json"
+#data_path="../data/amazon.json"
 #n_train_class=10
 #n_val_class=5
 #n_test_class=9
 
 #dataset=fewrel
-#data_path="data/fewrel.json"
+#data_path="../data/fewrel.json"
 #n_train_class=65
 #n_val_class=5
 #n_test_class=10
 
 #dataset=20newsgroup
-#data_path="data/20news.json"
+#data_path="../data/20news.json"
 #n_train_class=8
 #n_val_class=5
 #n_test_class=7
 
 #dataset=huffpost
-#data_path="data/huffpost.json"
+#data_path="../data/huffpost.json"
 #n_train_class=20
 #n_val_class=5
 #n_test_class=16
-
+#
 #dataset=rcv1
-#data_path="data/rcv1.json"
+#data_path="../data/rcv1.json"
 #n_train_class=37
 #n_val_class=10
 #n_test_class=24
@@ -41,7 +41,7 @@ if [ "$dataset" = "fewrel" ]; then
         --shot 1 \
         --query 25 \
         --mode train \
-        --embedding meta \
+        --embedding mlad \
         --classifier r2d2 \
         --dataset=$dataset \
         --data_path=$data_path \
@@ -58,7 +58,7 @@ else
         --shot 1 \
         --query 25 \
         --mode train \
-        --embedding mlab \
+        --embedding mlad \
         --classifier r2d2 \
         --dataset=$dataset \
         --data_path=$data_path \
