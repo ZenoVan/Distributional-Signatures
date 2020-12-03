@@ -75,7 +75,7 @@ class R2D2(BASE):
 
         acc = BASE.compute_acc(pred, YQ)
 
-        if self.args.embedding != 'mlab':
+        if self.args.embedding != 'mlad':
 
             return acc, loss
 

@@ -67,6 +67,8 @@ class MLAD(nn.Module):
             # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
             if reverse_feature.shape[1] < 500:
                 zero = torch.zeros((reverse_feature.shape[0], 500-reverse_feature.shape[1]))
+                if self.args.cuda != -1:
+                   zero = zero.cuda(self.args.cuda)
                 reverse_feature = torch.cat((reverse_feature, zero), dim=-1)
                 # print('reverse_feature.shape[1]', reverse_feature.shape[1])
             else:

@@ -145,7 +145,7 @@ def train_one(task, model, opt, args, grad):
 
     support, query = task
 
-    if args.embedding != 'mlab':
+    if args.embedding != 'mlad':
         # Embedding the document
         XS = model['ebd'](support)
         YS = support['label']
@@ -219,7 +219,7 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     d_acc = np.array(d_acc)
 
     if verbose:
-        if args.embedding != 'mlab':
+        if args.embedding != 'mlad':
             print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
                 datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
                 colored("test acc mean", "blue"),
@@ -249,7 +249,7 @@ def test_one(task, model, args):
     '''
     support, query = task
 
-    if args.embedding != 'mlab':
+    if args.embedding != 'mlad':
 
         # Embedding the document
         XS = model['ebd'](support)
