@@ -137,9 +137,9 @@ def parse_args():
 
     # base word embedding
     parser.add_argument("--wv_path", type=str,
-                        default="./",
+                        default='../pretrain_wordvec',
                         help="path to word vector cache")
-    parser.add_argument("--word_vector", type=str, default="wiki.en.vec",
+    parser.add_argument("--word_vector", type=str, default='../pretrain_wordvec/wiki.en.vec',
                         help=("Name of pretrained word embeddings."))
     parser.add_argument("--finetune_ebd", action="store_true", default=False,
                         help=("Finetune embedding during meta-training"))
@@ -264,7 +264,7 @@ def main():
         query = args.query
         shot = args.shot
         args.query = 1
-        args.shot= 1
+        args.shot = 1
         args.way = args.n_train_class
         train_utils.train(train_data, val_data, model, args)
         # restore the original N-way K-shot setting

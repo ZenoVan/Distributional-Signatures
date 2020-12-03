@@ -12,6 +12,8 @@ class R2D2(BASE):
         super(R2D2, self).__init__(args)
         self.ebd_dim = ebd_dim
 
+        self.args = args
+
         # meta parameters to learn
         self.lam = nn.Parameter(torch.tensor(-1, dtype=torch.float))
         self.alpha = nn.Parameter(torch.tensor(0, dtype=torch.float))
@@ -50,7 +52,7 @@ class R2D2(BASE):
 
         return Y_onehot
 
-    def forward(self, XS, YS, XQ, YQ):
+    def forward(self, XS, YS, XQ, YQ, d_logits=None):
         '''
             @param XS (support x): support_size x ebd_dim
             @param YS (support y): support_size
@@ -73,4 +75,15 @@ class R2D2(BASE):
 
         acc = BASE.compute_acc(pred, YQ)
 
-        return acc, loss
+        if self.args.embedding != 'mlab':
+
+            return acc, loss
+
+        else:
+            d_loss = F.cross_entropy(d_logits, YQ)
+
+            all_loss = loss + d_loss
+
+            d_acc = BASE.compute_acc(d_logits, YQ)
+
+            return acc, d_acc, all_loss

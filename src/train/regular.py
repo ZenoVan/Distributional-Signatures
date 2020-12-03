@@ -145,22 +145,36 @@ def train_one(task, model, opt, args, grad):
 
     support, query = task
 
-    # Embedding the document
-    XS = model['ebd'](support)
-    YS = support['label']
+    if args.embedding != 'mlab':
+        # Embedding the document
+        XS = model['ebd'](support)
+        YS = support['label']
 
-    XQ = model['ebd'](query)
-    YQ = query['label']
+        XQ = model['ebd'](query)
+        YQ = query['label']
 
-    # Apply the classifier
-    _, loss = model['clf'](XS, YS, XQ, YQ)
+        # Apply the classifier
+        _, loss = model['clf'](XS, YS, XQ, YQ)
+
+    else:
+        # Embedding the document
+        XS = model['ebd'](support, flag='support')
+        YS = support['label']
+        # print('YS', YS)
+
+        XQ, d_logits = model['ebd'](query, flag='query')
+        YQ = query['label']
+        # print('YQ', set(YQ.numpy()))
+
+        # Apply the classifier
+        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, d_logits)
 
     if loss is not None:
         loss.backward()
 
     if torch.isnan(loss):
         # do not update the parameters if the gradient is nan
-        # print("NAN detected")
+        print("NAN detected")
         # print(model['clf'].lam, model['clf'].alpha, model['clf'].beta)
         return
 
@@ -187,24 +201,44 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                                         num_episodes).get_epoch()
 
     acc = []
+    d_acc = []
     if not args.notqdm:
         sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
                              leave=False,
                              desc=colored('Testing on val', 'yellow'))
 
     for task in sampled_tasks:
-        acc.append(test_one(task, model, args))
+        if args.embedding == 'mlad':
+            acc1, d_acc1 = test_one(task, model, args)
+            acc.append(acc1)
+            d_acc.append(d_acc1)
+        else:
+            acc.append(test_one(task, model, args))
 
     acc = np.array(acc)
+    d_acc = np.array(d_acc)
 
     if verbose:
-        print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
+        if args.embedding != 'mlab':
+            print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
                 datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
-                colored("acc mean", "blue"),
+                colored("test acc mean", "blue"),
                 np.mean(acc),
-                colored("std", "blue"),
+                colored("test std", "blue"),
                 np.std(acc),
                 ), flush=True)
+        else:
+            print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
+                datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+                colored("test acc mean", "blue"),
+                np.mean(acc),
+                colored("test std", "blue"),
+                np.std(acc),
+                colored("test d_acc mean", "blue"),
+                np.mean(d_acc),
+                colored("test d_acc std", "blue"),
+                np.std(d_acc),
+            ), flush=True)
 
     return np.mean(acc), np.std(acc)
 
@@ -215,14 +249,29 @@ def test_one(task, model, args):
     '''
     support, query = task
 
-    # Embedding the document
-    XS = model['ebd'](support)
-    YS = support['label']
+    if args.embedding != 'mlab':
 
-    XQ = model['ebd'](query)
-    YQ = query['label']
+        # Embedding the document
+        XS = model['ebd'](support)
+        YS = support['label']
 
-    # Apply the classifier
-    acc, _ = model['clf'](XS, YS, XQ, YQ)
+        XQ = model['ebd'](query)
+        YQ = query['label']
 
-    return acc
+        # Apply the classifier
+        acc, _ = model['clf'](XS, YS, XQ, YQ)
+
+        return acc
+
+    else:
+        # Embedding the document
+        XS = model['ebd'](support, flag='support')
+        YS = support['label']
+
+        XQ, d_logits = model['ebd'](query, flag='query')
+        YQ = query['label']
+
+        # Apply the classifier
+        acc, d_acc, _ = model['clf'](XS, YS, XQ, YQ, d_logits)
+
+        return acc, d_acc

@@ -414,14 +414,14 @@ def load_dataset(args):
     all_data = _load_json(args.data_path)
 
     tprint('Loading word vectors')
-    path = os.path.join(args.wv_path, args.word_vector)
-    if not os.path.exists(path):
-        # Download the word vector and save it locally:
-        tprint('Downloading word vectors')
-        import urllib.request
-        urllib.request.urlretrieve(
-            'https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.vec',
-            path)
+    # path = os.path.join(args.wv_path, args.word_vector)
+    # if not os.path.exists(path):
+    #     # Download the word vector and save it locally:
+    #     tprint('Downloading word vectors')
+    #     import urllib.request
+    #     urllib.request.urlretrieve(
+    #         'https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.vec',
+    #         path)
 
     vectors = Vectors(args.word_vector, cache=args.wv_path)
     vocab = Vocab(collections.Counter(_read_words(all_data)), vectors=vectors,
