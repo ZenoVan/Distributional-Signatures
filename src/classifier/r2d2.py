@@ -52,7 +52,7 @@ class R2D2(BASE):
 
         return Y_onehot
 
-    def forward(self, XS, YS, XQ, YQ, d_logits=None):
+    def forward(self, XS, YS, XQ, YQ, YQ_d, XSource, YSource_d, d_logits, d_source_logits):
         '''
             @param XS (support x): support_size x ebd_dim
             @param YS (support y): support_size
@@ -80,10 +80,12 @@ class R2D2(BASE):
             return acc, loss
 
         else:
-            d_loss = F.cross_entropy(d_logits, YQ)
+            d_loss = F.cross_entropy(d_logits, YQ_d)
 
-            all_loss = loss + d_loss
+            d_source_loss = F.cross_entropy(d_source_logits, YSource_d)
 
-            d_acc = BASE.compute_acc(d_logits, YQ)
+            all_loss = loss + d_loss + d_source_loss
+
+            d_acc = (BASE.compute_acc(d_logits, YQ_d) + BASE.compute_acc(d_source_logits, YSource_d)) / 2
 
             return acc, d_acc, all_loss
