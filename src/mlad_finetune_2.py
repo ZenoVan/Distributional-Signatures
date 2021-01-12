@@ -1,23 +1,122 @@
+# 这个预训练是不包含 类sample 的，有多少类咱们就做多少类的文本分类任务
+
 import os
 import sys
+import time
+import datetime
 import pickle
 import signal
 import argparse
 import traceback
 
-import torch
 import numpy as np
 
 import embedding.factory as ebd
 import classifier.factory as clf
 import dataset.loader as loader
 import train.factory as train_utils
-from train.utils import load_model_state_dict
+from classifier.base import BASE as base
+
+from tqdm import tqdm
+from termcolor import colored
+
+from dataset.parallel_sampler import ParallelSampler
+from train.utils import named_grad_param, grad_param, get_norm
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, Dataset
+
+from embedding.meta import RNN
+from embedding.wordebd import WORDEBD
+from embedding.GRL import ReverseLayerF
+
+
+class MLAD_FTN(nn.Module):
+
+    def __init__(self, ebd, args):
+        super(MLAD_FTN, self).__init__()
+
+        self.args = args
+
+        self.ebd = ebd
+        # self.aux = get_embedding(args)
+
+        self.ebd_dim = self.ebd.embedding_dim
+
+        self.lstm = nn.LSTM(input_size=300, hidden_size=128, num_layers=1, batch_first=True, dropout=0)
+        self.rnn = RNN(300, 128, 1, True, 0)
+
+        self.seq = nn.Sequential(
+                    nn.Dropout(0.2),
+                    nn.Linear(256, 128),
+                    nn.ReLU(),
+                    nn.Dropout(0.2),
+                    nn.Linear(128, 1),
+                    )
+
+        self.d = nn.Sequential(
+                nn.Dropout(0.2),
+                nn.Linear(500, 256),
+                nn.ReLU(),
+                nn.Dropout(0.2),
+                nn.Linear(256, 64),
+                nn.ReLU(),
+                nn.Dropout(0.2),
+                nn.Linear(64, args.n_train_class + args.n_val_class),
+                )
+
+    def forward(self, data, return_score=False):
+
+        # 将单词转为词向量
+        # print("\ndata.shape:", data['text'].shape)
+        ebd = self.ebd(data)
+        # w2v = ebd
+
+        # scale = self.compute_score(data, ebd)
+        # print("\ndata.shape:", ebd.shape)  # [b, text_len, 300]
+
+        # Generator部分
+        # print('_________________________________________ebd:', ebd.shape)
+        # ebd, (hn, cn) = self.lstm(ebd)
+        ebd = self.rnn(ebd, data['text_len'])
+        # print("\n_______________________________________________ebd.shape:", ebd.shape)  # [b, text_len, 256]
+        # for i, b in enumerate(ebd):
+        #     ebd[i] = self.seq(ebd[i])
+        # ebd = ebd[:, -1, :].reshape((-1, 256))
+        # ebd = torch.max(ebd, dim=-1, keepdim=False)[0]
+        ebd = self.seq(ebd).squeeze(-1)  # [b, text_len, 256] -> [b,text_len]
+        # print("\ndata.shape:", ebd.shape)  # [b, text_len]
+        word_weight = F.softmax(ebd, dim=-1)
+        # print("word_weight.shape:", word_weight.shape)  # [b, text_len]
+        # sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
+        # print("sentence_ebd.shape:", sentence_ebd.shape)
+
+        reverse_feature = ReverseLayerF.apply(word_weight, 0.5) # 用梯度反向层
+        # reverse_feature = word_weight  # 不用梯度反向层
+
+        # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
+        if reverse_feature.shape[1] < 500:
+            zero = torch.zeros((reverse_feature.shape[0], 500 - reverse_feature.shape[1]))
+            if self.args.cuda != -1:
+                zero = zero.cuda(self.args.cuda)
+            reverse_feature = torch.cat((reverse_feature, zero), dim=-1)
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+        else:
+            reverse_feature = reverse_feature[:, :500]
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+
+        # 通过判别器
+        logits = self.d(reverse_feature)  # [b, 500] -> [b, args.n_train_class]
+
+        return logits
 
 
 def parse_args():
+
     parser = argparse.ArgumentParser(
-            description="Few Shot Text Classification with Distributional Signatures")
+            description="Meta-Learning Adaption Domain.")
 
     # data configuration
     parser.add_argument("--data_path", type=str,
@@ -26,7 +125,7 @@ def parse_args():
     parser.add_argument("--dataset", type=str, default="reuters",
                         help="name of the dataset. "
                         "Options: [20newsgroup, amazon, huffpost, "
-                        "reuters, rcv1, fewrel]")
+                        "reuters, fewrel]")
     parser.add_argument("--n_train_class", type=int, default=15,
                         help="number of meta-train classes")
     parser.add_argument("--n_val_class", type=int, default=5,
@@ -127,8 +226,8 @@ def parse_args():
                         help=("tensor layer dim of induction network's relation"))
     parser.add_argument("--induct_iter", type=int, default=3,
                         help=("num of routings"))
-    parser.add_argument("--induct_att_dim", type=int, default=64,
-                        help=("attention projection dim of induction network"))
+    # parser.add_argument("--induct_att_dim", type=int, default=64,
+    #                     help=("attention projection dim of induction network"))
 
     # aux ebd configuration (for fewrel)
     parser.add_argument("--pos_ebd_dim", type=int, default=5,
@@ -180,8 +279,6 @@ def parse_args():
     parser.add_argument("--result_path", type=str, default="")
     parser.add_argument("--snapshot", type=str, default="",
                         help="path to the pretraiend weights")
-
-    parser.add_argument("--pretrain", type=str, default=None, help="path to the pretraiend weights for MLAD")
 
     return parser.parse_args()
 
@@ -242,7 +339,204 @@ def set_seed(seed):
     np.random.seed(seed)
 
 
+def reidx_y(YS, args):
+    '''
+        Map the labels into 0,..., way
+        @param YS: batch_size
+
+        @return YS_new: batch_size
+    '''
+    unique1, inv_S = torch.unique(YS, sorted=True, return_inverse=True)
+
+    Y_new = torch.arange(start=0, end=args.n_train_class, dtype=unique1.dtype,
+                         device=unique1.device)
+
+    return Y_new[inv_S]
+
+
+def train(train_data, model, args):
+    '''
+        Train the model
+    '''
+    # creating a tmp directory to save the models
+    out_dir = os.path.abspath(os.path.join(
+        os.path.curdir,
+        "tmp-runs-pretrain",
+        str(int(time.time() * 1e7))))
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # best_path = None
+
+    opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt, 'max', patience=args.patience // 2, factor=0.1, verbose=True)
+
+    print("{}, Start training".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
+
+    # 把label变为0-9（如果是10类的话）
+    key = np.sort(np.unique(train_data['label']))
+    print("\n-------------------------------------------------------------------------------------")
+    print(key)
+    temp_list = []
+    for i in train_data['label']:
+        temp_list.append(list(key).index(i))
+    temp_list = np.array(temp_list)
+    train_data['label'] = temp_list
+    print(train_data['label'].shape)
+    print(set(train_data['label']))
+    print("\n-------------------------------------------------------------------------------------")
+
+    train_data_batch = DataLoader(Data_Class(train_data), batch_size=32, shuffle=True)
+
+    for ep in range(100):
+
+        model.train()
+
+        for text, label, text_len in train_data_batch:
+
+            # print("train_data_batch:", task.shape)
+            data = {}
+            if args.cuda != -1:
+                data['text'] = text.cuda(args.cuda)
+                data['text_len'] = text_len.cuda(args.cuda)
+                label = label.cuda(args.cuda)
+            else:
+                data['text'] = text
+                data['text_len'] = text_len
+            # print(data['text'].shape, data['text_len'].shape)
+            pred = model(data)
+            # print("pred:", pred)
+            # print("\n___________________________________reixy_label:", label.tolist())
+            # print(pred.shape, label.shape)
+            loss = F.cross_entropy(pred, label)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+
+        if ep % 10 == 0:
+
+            acc, std = test(train_data_batch, model, args)
+            print("{}, {:s} {:2d}, {:s} {:s}{:>7.4f} ± {:>6.4f} ".format(
+                datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+                "ep", ep,
+                colored("train", "red"),
+                colored("acc:", "blue"), acc, std,
+            ), flush=True)
+
+        save_path = os.path.join(out_dir, str(ep))
+        print("{}, Save cur {}th model to {}".format(
+            datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'), ep,
+            save_path))
+        torch.save(model.state_dict(), save_path + '.pretrain_ebd')
+
+    print("{}, End of training. Restore the weights".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')),
+        flush=True)
+
+    # restore the best saved model
+    # model['ebd'].load_state_dict(torch.load(best_path + '.pretrain_ebd'))
+    # model['clf'].load_state_dict(torch.load(best_path + '.clf'))
+
+    # if args.save:
+    #     # save the current model
+    #     out_dir = os.path.abspath(os.path.join(
+    #         os.path.curdir,
+    #         "saved-runs",
+    #         str(int(time.time() * 1e7))))
+    #     if not os.path.exists(out_dir):
+    #         os.makedirs(out_dir)
+    #
+    #     best_path = os.path.join(out_dir, 'best')
+    #
+    #     print("{}, Save best model to {}".format(
+    #         datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+    #         best_path), flush=True)
+    #
+    #     torch.save(model['ebd'].state_dict(), best_path + '.pretrain_ebd')
+    #     # torch.save(model['clf'].state_dict(), best_path + '.clf')
+    #
+    #     with open(best_path + '_args.txt', 'w') as f:
+    #         for attr, value in sorted(args.__dict__.items()):
+    #             f.write("{}={}\n".format(attr, value))
+
+    return
+
+
+def test(train_data_batch, model, args):
+    '''
+        Evaluate the model on a bag of sampled tasks. Return the mean accuracy
+        and its std.
+    '''
+    model.eval()
+
+    acc = []
+
+    for task, label, text_len in train_data_batch:
+
+        acc.append(test_one(task, label, text_len, model, args))
+
+    acc = np.array(acc)
+
+    return np.mean(acc), np.std(acc)
+
+
+def test_one(task, label, text_len, model, args):
+    '''
+        Evaluate the model on one sampled task. Return the accuracy.
+    '''
+
+    data = {}
+    if args.cuda != -1:
+        data['text'] = task.cuda(args.cuda)
+        data['text_len'] = text_len.cuda(args.cuda)
+        label = label.cuda(args.cuda)
+    else:
+        data['text'] = task
+        data['text_len'] = text_len
+    pred = model(data)
+    # print("pred:", pred)
+    # print("\n___________________________________reixy_label:", label.tolist())
+    logits = F.softmax(pred)
+    # print("------------------------------logits,label___", logits.shape, label.shape)
+    # print("label:", label)
+    acc = compute_acc(logits, label)
+
+    return acc
+
+
+def compute_acc(pred, true):
+    '''
+        Compute the accuracy.
+        @param pred: batch_size * num_classes
+        @param true: batch_size
+    '''
+    return torch.mean((torch.argmax(pred, dim=1) == true).float()).item()
+
+
+class Data_Class(Dataset):
+
+    def __init__(self, train_data):
+        self.data = train_data['text']
+        self.label = train_data['label']
+        self.text_len = train_data['text_len']
+
+    def __getitem__(self, index):
+        data = self.data[index]
+        label = self.label[index]
+        text_len = self.text_len[index]
+
+        return data, label, text_len
+
+    def __len__(self):
+        return len(self.label)
+
+
+
 def main():
+
     args = parse_args()
 
     print_args(args)
@@ -250,71 +544,39 @@ def main():
     set_seed(args.seed)
 
     # load data
-    train_data, val_data, test_data, vocab = loader.load_dataset(args)
+    _train_data, _val_data, _test_data, vocab = loader.load_dataset(args)
+
+    train_data = {}
+    print(_train_data['text'].shape, _val_data['text'].shape)
+    if _train_data['text'].shape[-1] > _val_data['text'].shape[-1]:
+        _val_data['text'] = np.pad(_val_data['text'], ((0, 0), (0, _train_data['text'].shape[-1] - _val_data['text'].shape[-1])),
+                                   'constant')
+    elif _train_data['text'].shape[-1] < _val_data['text'].shape[-1]:
+        _train_data['text'] = np.pad(_train_data['text'], ((0, 0), (0, _val_data['text'].shape[-1] - _train_data['text'].shape[-1])),
+                                     'constant')
+
+    print("\nafter:", _train_data['text'].shape, _val_data['text'].shape)
+    train_data['text'] = np.concatenate((_train_data['text'], _val_data['text']), axis=0)
+    train_data['label'] = np.concatenate((_train_data['label'], _val_data['label']), axis=0)
+    train_data['text_len'] = np.concatenate((_train_data['text_len'], _val_data['text_len']), axis=0)
+
+    set_label = list(set(train_data['label']))
+    print("\n----------------set_label", set_label)
 
     # initialize model
-    model = {}
-    model["ebd"] = ebd.get_embedding(vocab, args)
-    model["clf"] = clf.get_classifier(model["ebd"].ebd_dim, args)
+    print("{}, Building embedding".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
 
-    if args.pretrain is not None:
-        model["ebd"] = load_model_state_dict(model["ebd"], args.pretrain)
+    ebd = WORDEBD(vocab, args.finetune_ebd)
 
-    if args.mode == "train":
-        # train model on train_data, early stopping based on val_data
-        train_utils.train(train_data, val_data, model, args)
+    model = MLAD_FTN(ebd, args)
 
-    elif args.mode == "finetune":
-        # sample an example from each class during training
-        way = args.way
-        query = args.query
-        shot = args.shot
-        args.query = 1
-        args.shot = 1
-        args.way = args.n_train_class
-        train_utils.train(train_data, val_data, model, args)
-        # restore the original N-way K-shot setting
-        args.shot = shot
-        args.query = query
-        args.way = way
+    if args.cuda != -1:
+        model = model.cuda(args.cuda)
 
-    # testing on validation data: only for not finetune
-    # In finetune, we combine all train and val classes and split it into train
-    # and validation examples.
-    if args.mode != "finetune":
-        val_acc, val_std = train_utils.test(val_data, model, args,
-                                            args.val_episodes)
-    else:
-        val_acc, val_std = 0, 0
-
-    test_acc, test_std = train_utils.test(test_data, model, args,
-                                          args.test_episodes)
-
-    if args.result_path:
-        directory = args.result_path[:args.result_path.rfind("/")]
-        if not os.path.exists(directory):
-            os.mkdirs(directory)
-
-        result = {
-            "test_acc": test_acc,
-            "test_std": test_std,
-            "val_acc": val_acc,
-            "val_std": val_std
-        }
-
-        for attr, value in sorted(args.__dict__.items()):
-            result[attr] = value
-
-        with open(args.result_path, "wb") as f:
-            pickle.dump(result, f, pickle.HIGHEST_PROTOCOL)
+    train(train_data, model, args)
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        exc_info = sys.exc_info()
-        traceback.print_exception(*exc_info)
-        os.killpg(0, signal.SIGKILL)
+if __name__ == '__main__':
+    main()
 
-    exit(0)

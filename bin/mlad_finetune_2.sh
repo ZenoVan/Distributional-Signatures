@@ -17,7 +17,7 @@
 #n_test_class=7
 
 dataset=huffpost
-data_path="../data/huffpost.json"   
+data_path="../data/huffpost.json"
 n_train_class=20
 n_val_class=5
 n_test_class=16
@@ -35,10 +35,10 @@ n_test_class=16
 #n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
-    python ../src/main.py \
+    python ../src/mlad_finetune_2.py \
         --cuda 0 \
         --way 5 \
-        --shot 5 \
+        --shot 1 \
         --query 25 \
         --mode train \
         --embedding mlad \
@@ -48,15 +48,14 @@ if [ "$dataset" = "fewrel" ]; then
         --n_train_class=$n_train_class \
         --n_val_class=$n_val_class \
         --n_test_class=$n_test_class \
-        --auxiliary pos \
-        --meta_iwf \
-        --meta_w_target \
-        --pretrain="../bin/tmp-runs-pretrain/16082801702344212/99.pretrain_ebd"
+#        --auxiliary pos \
+#        --meta_iwf \
+#        --meta_w_target
 else
-    python ../src/main.py \
+    python ../src/mlad_finetune_2.py \
         --cuda 0 \
         --way 5 \
-        --shot 5 \
+        --shot 1 \
         --query 25 \
         --mode train \
         --embedding mlad \
@@ -66,7 +65,6 @@ else
         --n_train_class=$n_train_class \
         --n_val_class=$n_val_class \
         --n_test_class=$n_test_class \
-        --pretrain="../bin/tmp-runs-pretrain/16082802589535282/1.pretrain_ebd"
 #        --wv_path = 'pretrain_wordvec' \
 #        --word_vector = 'pretrain_wordvec/wiki.en.vec'
 #        --meta_iwf \

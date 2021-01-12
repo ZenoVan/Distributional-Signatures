@@ -71,6 +71,7 @@ class MLAD(nn.Module):
             elif flag == 'query':
                 # 梯度反转层
                 reverse_feature = ReverseLayerF.apply(word_weight, 0.5)
+                # reverse_feature = word_weight
 
                 # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
                 if reverse_feature.shape[1] < 500:

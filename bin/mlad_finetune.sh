@@ -1,8 +1,8 @@
-#dataset=amazon
-#data_path="../data/amazon.json"
-#n_train_class=10
-#n_val_class=5
-#n_test_class=9
+dataset=amazon
+data_path="../data/amazon.json"
+n_train_class=10
+n_val_class=5
+n_test_class=9
 
 #dataset=fewrel
 #data_path="../data/fewrel.json"
@@ -16,11 +16,11 @@
 #n_val_class=5
 #n_test_class=7
 
-dataset=huffpost
-data_path="../data/huffpost.json"   
-n_train_class=20
-n_val_class=5
-n_test_class=16
+#dataset=huffpost
+#data_path="../data/huffpost.json"
+#n_train_class=20
+#n_val_class=5
+#n_test_class=16
 #
 #dataset=rcv1
 #data_path="../data/rcv1.json"
@@ -35,12 +35,12 @@ n_test_class=16
 #n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
-    python ../src/main.py \
+    python ../src/mlad_finetune.py \
         --cuda 0 \
         --way 5 \
-        --shot 5 \
+        --shot 1 \
         --query 25 \
-        --mode train \
+        --mode finetune \
         --embedding mlad \
         --classifier r2d2 \
         --dataset=$dataset \
@@ -50,15 +50,14 @@ if [ "$dataset" = "fewrel" ]; then
         --n_test_class=$n_test_class \
         --auxiliary pos \
         --meta_iwf \
-        --meta_w_target \
-        --pretrain="../bin/tmp-runs-pretrain/16082801702344212/99.pretrain_ebd"
+        --meta_w_target
 else
-    python ../src/main.py \
+    python ../src/mlad_finetune.py \
         --cuda 0 \
         --way 5 \
-        --shot 5 \
+        --shot 1 \
         --query 25 \
-        --mode train \
+        --mode finetune \
         --embedding mlad \
         --classifier r2d2 \
         --dataset=$dataset \
@@ -66,7 +65,6 @@ else
         --n_train_class=$n_train_class \
         --n_val_class=$n_val_class \
         --n_test_class=$n_test_class \
-        --pretrain="../bin/tmp-runs-pretrain/16082802589535282/1.pretrain_ebd"
 #        --wv_path = 'pretrain_wordvec' \
 #        --word_vector = 'pretrain_wordvec/wiki.en.vec'
 #        --meta_iwf \

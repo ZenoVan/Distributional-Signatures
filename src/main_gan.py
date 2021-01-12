@@ -17,10 +17,14 @@ from termcolor import colored
 
 import embedding.factory as ebd
 import classifier.factory as clf
+from classifier.base import BASE
 import dataset.loader as loader
+from dataset.utils import tprint
+from embedding.meta import RNN
 import train.factory as train_utils
 from train.utils import load_model_state_dict
 from train.utils import named_grad_param, grad_param, get_norm
+from embedding.wordebd import WORDEBD
 
 import torch
 import torch.nn as nn
@@ -255,6 +259,37 @@ def set_seed(seed):
     np.random.seed(seed)
 
 
+def get_embedding(vocab, args):
+    print("{}, Building embedding".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
+
+    ebd = WORDEBD(vocab, args.finetune_ebd)
+
+    modelG = ModelG(ebd, args)
+    modelD = ModelD(ebd, args)
+
+    print("{}, Building embedding".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
+
+    if args.cuda != -1:
+        modelG = modelG.cuda(args.cuda)
+        modelD = modelD.cuda(args.cuda)
+        return modelG, modelD
+    else:
+        return modelG, modelD
+
+
+def get_classifier(ebd_dim, args):
+    tprint("Building classifier")
+
+    model = R2D2(ebd_dim, args)
+
+    if args.cuda != -1:
+        return model.cuda(args.cuda)
+    else:
+        return model
+
+
 def task_sampler(data, args):
 
     all_classes = np.unique(data['label'])
@@ -275,43 +310,170 @@ def task_sampler(data, args):
     return sampled_classes, source_classes  # 存的是idx_list的索引
 
 
-# class ParallelSampler():
-#     def __init__(self, train_data, args, train_episodes=None):
-#
-#         self.train_data = train_data
-#         self.args = args
-#         self.train_episodes = train_episodes
-#
-#         self.all_classes = np.unique(self.data['label'])
-#         self.num_classes = len(self.all_classes)
-#         if self.num_classes < self.args.way:
-#             raise ValueError("Total number of classes is less than #way.")
-#
-#         # 获取不同类别对应的样本的索引（[[],[],[]...]）
-#         self.idx_list = []
-#         for y in self.all_classes:
-#             self.idx_list.append(
-#                 np.squeeze(np.argwhere(self.data['label'] == y)))
-#
-#     def get_task(self):
-#
-#         index = np.random.randint(0, self.num_classes, 5)
-#         selected_classes = self.all_classes[index]
-#         print("**********selected_classes.shape:", selected_classes.shape)
-#         print("**********selected_classes:", selected_classes)
-#
-#         idx_list = []
-#         for y in selected_classes:
-#             idx_list.append(
-#                 np.squeeze(np.argwhere(self.data['label'] == y)))
-#
-#         print("**********idx_list.shape:", idx_list.shape)
-#         print("**********idx_list:", idx_list)
-#
-#         return selected_classes, idx_list
-#
-#     def get_epoch(self):
-#         pass
+class ModelG(nn.Module):
+
+    def __init__(self, ebd, args):
+        super(ModelG, self).__init__()
+
+        self.args = args
+
+        self.ebd = ebd
+        # self.aux = get_embedding(args)
+
+        self.ebd_dim = self.ebd.embedding_dim
+
+        self.rnn = RNN(300, 128, 1, True, 0)
+        self.lstm = nn.LSTM(input_size=300, hidden_size=128, num_layers=1, batch_first=True, dropout=0)
+
+        self.seq = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, data, flag, return_score=False):
+
+        # 将单词转为词向量
+        ebd = self.ebd(data)
+        w2v = ebd
+
+        # scale = self.compute_score(data, ebd)
+        # print("\ndata.shape:", ebd.shape)  # [b, text_len, 300]
+
+        # Generator部分
+        ebd = self.rnn(ebd, data['text_len'])
+        # ebd, (hn, cn) = self.lstm(ebd)
+        # print("\ndata.shape:", ebd.shape)  # [b, text_len, 256]
+        # for i, b in enumerate(ebd):
+        ebd = self.seq(ebd).squeeze(-1)  # [b, text_len, 256] -> [b, text_len]
+        # ebd = torch.max(ebd, dim=-1, keepdim=False)[0]
+        # print("\ndata.shape:", ebd.shape)  # [b, text_len]
+        word_weight = F.softmax(ebd, dim=-1)
+        # print("word_weight.shape:", word_weight.shape)  # [b, text_len]
+        sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
+        # print("sentence_ebd.shape:", sentence_ebd.shape)
+
+        reverse_feature = word_weight
+
+        # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
+        if reverse_feature.shape[1] < 500:
+            zero = torch.zeros((reverse_feature.shape[0], 500-reverse_feature.shape[1]))
+            if self.args.cuda != -1:
+               zero = zero.cuda(self.args.cuda)
+            reverse_feature = torch.cat((reverse_feature, zero), dim=-1)
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+        else:
+            reverse_feature = reverse_feature[:, :500]
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+
+        return sentence_ebd, reverse_feature
+
+
+class ModelD(nn.Module):
+
+    def __init__(self, ebd, args):
+        super(ModelD, self).__init__()
+
+        self.args = args
+
+        self.ebd = ebd
+        # self.aux = get_embedding(args)
+
+        self.d = nn.Sequential(
+                nn.Dropout(0.2),
+                nn.Linear(500, 256),
+                nn.ReLU(),
+                nn.Dropout(0.2),
+                nn.Linear(256, 64),
+                nn.ReLU(),
+                nn.Dropout(0.2),
+                nn.Linear(64, 2),
+                )
+
+    def forward(self, reverse_feature):
+
+        # 通过判别器
+        logits = self.d(reverse_feature)  # [b, 500] -> [b, 2]
+
+        return logits
+
+
+class R2D2(BASE):
+    '''
+        META-LEARNING WITH DIFFERENTIABLE CLOSED-FORM SOLVERS
+    '''
+    def __init__(self, ebd_dim, args):
+        super(R2D2, self).__init__(args)
+        self.ebd_dim = ebd_dim
+
+        self.args = args
+
+        # meta parameters to learn
+        self.lam = nn.Parameter(torch.tensor(-1, dtype=torch.float))
+        self.alpha = nn.Parameter(torch.tensor(0, dtype=torch.float))
+        self.beta = nn.Parameter(torch.tensor(1, dtype=torch.float))
+        # lambda and alpha is learned in the log space
+
+        # cached tensor for speed
+        self.I_support = nn.Parameter(
+            torch.eye(self.args.shot * self.args.way, dtype=torch.float),
+            requires_grad=False)
+        self.I_way = nn.Parameter(torch.eye(self.args.way, dtype=torch.float),
+                                  requires_grad=False)
+
+    def _compute_w(self, XS, YS_onehot):
+        '''
+            Compute the W matrix of ridge regression
+            @param XS: support_size x ebd_dim
+            @param YS_onehot: support_size x way
+
+            @return W: ebd_dim * way
+        '''
+
+        W = XS.t() @ torch.inverse(
+                XS @ XS.t() + (10. ** self.lam) * self.I_support) @ YS_onehot
+
+        return W
+
+    def _label2onehot(self, Y):
+        '''
+            Map the labels into 0,..., way
+            @param Y: batch_size
+
+            @return Y_onehot: batch_size * ways
+        '''
+        Y_onehot = F.embedding(Y, self.I_way)
+
+        return Y_onehot
+
+    def forward(self, XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d):
+        '''
+            @param XS (support x): support_size x ebd_dim
+            @param YS (support y): support_size
+            @param XQ (support x): query_size x ebd_dim
+            @param YQ (support y): query_size
+
+            @return acc
+            @return loss
+        '''
+
+        YS, YQ = self.reidx_y(YS, YQ)
+
+        YS_onehot = self._label2onehot(YS)
+
+        W = self._compute_w(XS, YS_onehot)
+
+        pred = (10.0 ** self.alpha) * XQ @ W + self.beta
+
+        loss = F.cross_entropy(pred, YQ)
+
+        acc = BASE.compute_acc(pred, YQ)
+
+        d_acc = (BASE.compute_acc(XQ_logitsD, YQ_d) + BASE.compute_acc(XSource_logitsD, YSource_d)) / 2
+
+        return acc, d_acc, loss
 
 
 class ParallelSampler():
@@ -517,61 +679,54 @@ class ParallelSampler_Test():
         del self.done_queue
 
 
-def train_one(task, model, opt, args, grad):
+def train_one(task, model, optG, optD, args, grad):
     '''
         Train the model on one sampled task.
     '''
-    model['ebd'].train()
+    model['G'].train()
+    model['D'].train()
     model['clf'].train()
-    opt.zero_grad()
 
     support, query, source = task
 
-    if args.embedding != 'mlad':
-        # Embedding the document
-        XS = model['ebd'](support)
-        YS = support['label']
+    # ***************update D**************
+    optD.zero_grad()
 
-        XQ = model['ebd'](query)
-        YQ = query['label']
+    # Embedding the document
+    XS, XS_inputD = model['G'](support, flag='support')
+    YS = support['label']
+    # print('YS', YS)
 
-        # Apply the classifier
-        _, loss = model['clf'](XS, YS, XQ, YQ)
+    XQ, XQ_inputD = model['G'](query, flag='query')
+    YQ = query['label']
+    YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
+    # print('YQ', set(YQ.numpy()))
 
-    else:
-        # Embedding the document
-        XS = model['ebd'](support, flag='support')
-        YS = support['label']
-        # print('YS', YS)
+    XSource, XSource_inputD = model['G'](source, flag='query')
+    YSource_d = torch.zeros(source['label'].shape, dtype=torch.long).to(source['label'].device)
 
-        XQ, d_logits = model['ebd'](query, flag='query')
-        YQ = query['label']
-        YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
-        # print('YQ', set(YQ.numpy()))
+    XQ_logitsD = model['D'](XQ_inputD)
+    XSource_logitsD = model['D'](XSource_inputD)
 
-        XSource, d_source_logits = model['ebd'](source, flag='query')
-        YSource_d = torch.zeros(source['label'].shape, dtype=torch.long).to(source['label'].device)
+    d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
+    d_loss.backward(retain_graph=True)
+    grad['D'].append(get_norm(model['D']))
+    optD.step()
 
-        # Apply the classifier
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, YQ_d, XSource, YSource_d, d_logits, d_source_logits)
+    # *****************update G****************
+    optG.zero_grad()
+    XQ_logitsD = model['D'](XQ_inputD)
+    XSource_logitsD = model['D'](XSource_inputD)
+    d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
 
-    if loss is not None:
-        loss.backward()
+    acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
-    if torch.isnan(loss):
-        # do not update the parameters if the gradient is nan
-        print("NAN detected")
-        # print(model['clf'].lam, model['clf'].alpha, model['clf'].beta)
-        return
-
-    if args.clip_grad is not None:
-        nn.utils.clip_grad_value_(grad_param(model, ['ebd', 'clf']),
-                                  args.clip_grad)
-
+    g_loss = loss - d_loss
+    g_loss.backward(retain_graph=True)
+    grad['G'].append(get_norm(model['G']))
     grad['clf'].append(get_norm(model['clf']))
-    grad['ebd'].append(get_norm(model['ebd']))
+    optG.step()
 
-    opt.step()
     return d_acc
 
 
@@ -592,11 +747,12 @@ def train(train_data, val_data, model, args):
     sub_cycle = 0
     best_path = None
 
-    opt = torch.optim.Adam(grad_param(model, ['ebd', 'clf']), lr=args.lr)
+    optG = torch.optim.Adam(grad_param(model, ['G', 'clf']), lr=args.lr)
+    optD = torch.optim.Adam(grad_param(model, ['D']), lr=args.lr)
 
     # 应该是替换opt所在位置
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            opt, 'max', patience=args.patience//2, factor=0.1, verbose=True)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #         opt, 'max', patience=args.patience//2, factor=0.1, verbose=True)
 
     print("{}, Start training".format(
         datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
@@ -614,7 +770,7 @@ def train(train_data, val_data, model, args):
 
         sampled_tasks = train_gen.get_epoch()
 
-        grad = {'clf': [], 'ebd': []}
+        grad = {'clf': [], 'G': [], 'D': []}
 
         if not args.notqdm:
             sampled_tasks = tqdm(sampled_tasks, total=train_gen.num_episodes,
@@ -624,8 +780,10 @@ def train(train_data, val_data, model, args):
         for task in sampled_tasks:
             if task is None:
                 break
-            d_acc += train_one(task, model, opt, args, grad)
+            d_acc += train_one(task, model, optG, optD, args, grad)
+
         d_acc = d_acc / args.train_episodes
+
         print("---------------ep:" + str(ep) + " d_acc:" + str(d_acc) + "-----------")
 
         if ep % 10 == 0:
@@ -649,7 +807,7 @@ def train(train_data, val_data, model, args):
                colored("val  ", "cyan"),
                colored("acc:", "blue"), cur_acc, cur_std,
                colored("train stats", "cyan"),
-               colored("ebd_grad:", "blue"), np.mean(np.array(grad['ebd'])),
+               colored("G_grad:", "blue"), np.mean(np.array(grad['G'])),
                colored("clf_grad:", "blue"), np.mean(np.array(grad['clf'])),
                ), flush=True)
 
@@ -663,7 +821,8 @@ def train(train_data, val_data, model, args):
                 datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
                 best_path))
 
-            torch.save(model['ebd'].state_dict(), best_path + '.ebd')
+            torch.save(model['G'].state_dict(), best_path + '.G')
+            torch.save(model['D'].state_dict(), best_path + '.D')
             torch.save(model['clf'].state_dict(), best_path + '.clf')
 
             sub_cycle = 0
@@ -679,7 +838,8 @@ def train(train_data, val_data, model, args):
             flush=True)
 
     # restore the best saved model
-    model['ebd'].load_state_dict(torch.load(best_path + '.ebd'))
+    model['G'].load_state_dict(torch.load(best_path + '.G'))
+    model['D'].load_state_dict(torch.load(best_path + '.D'))
     model['clf'].load_state_dict(torch.load(best_path + '.clf'))
 
     if args.save:
@@ -697,7 +857,8 @@ def train(train_data, val_data, model, args):
             datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
             best_path), flush=True)
 
-        torch.save(model['ebd'].state_dict(), best_path + '.ebd')
+        torch.save(model['G'].state_dict(), best_path + '.G')
+        torch.save(model['D'].state_dict(), best_path + '.D')
         torch.save(model['clf'].state_dict(), best_path + '.clf')
 
         with open(best_path + '_args.txt', 'w') as f:
@@ -729,21 +890,24 @@ def test_one(task, model, args):
 
     else:
         # Embedding the document
-        XS = model['ebd'](support, flag='support')
+        XS, XS_inputD = model['G'](support, flag='support')
         YS = support['label']
         # print('YS', YS)
 
-        XQ, d_logits = model['ebd'](query, flag='query')
+        XQ, XQ_inputD = model['G'](query, flag='query')
         YQ = query['label']
         YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
         # print('YQ', set(YQ.numpy()))
 
         # 这步主要是为了匹配模型输入，下面这几个参数没有什么用
-        XSource, d_source_logits = model['ebd'](query, flag='query')
+        XSource, XSource_inputD = model['G'](query, flag='query')
         YSource_d = torch.zeros(query['label'].shape, dtype=torch.long).to(query['label'].device)
 
+        XQ_logitsD = model['D'](XQ_inputD)
+        XSource_logitsD = model['D'](XSource_inputD)
+
         # Apply the classifier
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, YQ_d, XSource, YSource_d, d_logits, d_source_logits)
+        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
         return acc, d_acc
 
@@ -753,7 +917,8 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
         Evaluate the model on a bag of sampled tasks. Return the mean accuracy
         and its std.
     '''
-    model['ebd'].eval()
+    model['G'].eval()
+    model['D'].eval()
     model['clf'].eval()
 
     if sampled_tasks is None:
@@ -816,11 +981,8 @@ def main():
 
     # initialize model
     model = {}
-    model["ebd"] = ebd.get_embedding(vocab, args)
-    model["clf"] = clf.get_classifier(model["ebd"].ebd_dim, args)
-
-    if args.pretrain is not None:
-        model["ebd"] = load_model_state_dict(model["ebd"], args.pretrain)
+    model["G"], model["D"] = get_embedding(vocab, args)
+    model["clf"] = get_classifier(model["G"].ebd_dim, args)
 
     if args.mode == "train":
         # train model on train_data, early stopping based on val_data

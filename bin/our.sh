@@ -1,8 +1,8 @@
-#dataset=amazon
-#data_path="../data/amazon.json"
-#n_train_class=10
-#n_val_class=5
-#n_test_class=9
+dataset=amazon
+data_path="../data/amazon.json"
+n_train_class=10
+n_val_class=5
+n_test_class=9
 
 #dataset=fewrel
 #data_path="../data/fewrel.json"
@@ -28,11 +28,11 @@
 #n_val_class=10
 #n_test_class=24
 
-dataset=reuters
-data_path="../data/reuters.json"
-n_train_class=15
-n_val_class=5
-n_test_class=11
+#dataset=reuters
+#data_path="../data/reuters.json"
+#n_train_class=15
+#n_val_class=5
+#n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
     python ../src/main.py \
@@ -57,7 +57,7 @@ else
         --way 5 \
         --shot 1 \
         --query 25 \
-        --mode train \
+        --mode finetune \
         --embedding meta \
         --classifier r2d2 \
         --dataset=$dataset \

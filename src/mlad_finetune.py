@@ -1,23 +1,39 @@
+# 在正式训练之前，我们先用训练集和验证集对模型的G生成器和D判别器进行初始化
+# 初始化方法就是直接把他们当成一个端到端的网络进行文本分类任务
+
+# 这个文件的预训练有问题，就是在sample阶段，每次sample不一样的类，但是到了预测时都会把标签映射成0-x，这样会搞蒙模型。
+
 import os
 import sys
+import time
+import datetime
 import pickle
 import signal
 import argparse
 import traceback
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 
 import embedding.factory as ebd
 import classifier.factory as clf
 import dataset.loader as loader
 import train.factory as train_utils
-from train.utils import load_model_state_dict
+from classifier.base import BASE as base
+
+from tqdm import tqdm
+from termcolor import colored
+
+from dataset.parallel_sampler import ParallelSampler
+from train.utils import named_grad_param, grad_param, get_norm
 
 
 def parse_args():
+
     parser = argparse.ArgumentParser(
-            description="Few Shot Text Classification with Distributional Signatures")
+            description="Meta-Learning Adaption Domain.")
 
     # data configuration
     parser.add_argument("--data_path", type=str,
@@ -26,7 +42,7 @@ def parse_args():
     parser.add_argument("--dataset", type=str, default="reuters",
                         help="name of the dataset. "
                         "Options: [20newsgroup, amazon, huffpost, "
-                        "reuters, rcv1, fewrel]")
+                        "reuters, fewrel]")
     parser.add_argument("--n_train_class", type=int, default=15,
                         help="number of meta-train classes")
     parser.add_argument("--n_val_class", type=int, default=5,
@@ -181,8 +197,6 @@ def parse_args():
     parser.add_argument("--snapshot", type=str, default="",
                         help="path to the pretraiend weights")
 
-    parser.add_argument("--pretrain", type=str, default=None, help="path to the pretraiend weights for MLAD")
-
     return parser.parse_args()
 
 
@@ -242,7 +256,280 @@ def set_seed(seed):
     np.random.seed(seed)
 
 
+def reidx_y(YS, YQ, args):
+        '''
+            Map the labels into 0,..., way
+            @param YS: batch_size
+            @param YQ: batch_size
+
+            @return YS_new: batch_size
+            @return YQ_new: batch_size
+        '''
+        unique1, inv_S = torch.unique(YS, sorted=True, return_inverse=True)
+        unique2, inv_Q = torch.unique(YQ, sorted=True, return_inverse=True)
+
+        Y_new = torch.arange(start=0, end=args.way, dtype=unique1.dtype,
+                device=unique1.device)
+
+        return Y_new[inv_S], Y_new[inv_Q]
+
+
+def train(train_data, model, args):
+    '''
+        Train the model
+        Use val_data to do early stopping
+    '''
+    # creating a tmp directory to save the models
+    out_dir = os.path.abspath(os.path.join(
+        os.path.curdir,
+        "tmp-runs",
+        str(int(time.time() * 1e7))))
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    best_acc = 0
+    sub_cycle = 0
+    best_path = None
+
+    opt = torch.optim.Adam(grad_param(model, ['ebd']), lr=args.lr)
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt, 'max', patience=args.patience // 2, factor=0.1, verbose=True)
+
+    print("{}, Start training".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
+
+    train_gen = ParallelSampler(train_data, args, args.train_episodes)  # 这里每次选择5个类，每个类中抽取一些样本进行训练，或许可以改为一个完全端到端的预测，就是只选择5个类，用这5个类的数据去预训练模型。
+    train_gen_val = ParallelSampler(train_data, args, args.val_episodes)
+    # val_gen = ParallelSampler(val_data, args, args.val_episodes)
+
+    for ep in range(args.train_epochs):
+        sampled_tasks = train_gen.get_epoch()
+
+        grad = {'ebd': []}
+
+        if not args.notqdm:
+            sampled_tasks = tqdm(sampled_tasks, total=train_gen.num_episodes,
+                                 ncols=80, leave=False, desc=colored('Training on train',
+                                                                     'yellow'))
+
+        for task in sampled_tasks:
+            if task is None:
+                break
+            train_one(task, model, opt, args, grad)
+
+        acc, std = test(train_data, model, args, args.val_episodes, False,
+                        train_gen_val.get_epoch())
+        print("{}, {:s} {:2d}, {:s} {:s}{:>7.4f} ± {:>6.4f} ".format(
+            datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+            "ep", ep,
+            colored("train", "red"),
+            colored("acc:", "blue"), acc, std,
+        ), flush=True)
+
+        if acc >= best_acc:
+            best_acc = acc
+            best_path = os.path.join(out_dir, str(ep))
+
+            print("{}, Save cur best model to {}".format(
+                datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+                best_path))
+
+            torch.save(model['ebd'].state_dict(), best_path + '.pretrain_ebd')
+
+            sub_cycle = 0
+
+        else:
+            sub_cycle += 1
+
+        # Break if the val acc hasn't improved in the past patience epochs
+        if sub_cycle == args.patience:
+            break
+
+    print("{}, End of training. Restore the best weights".format(
+        datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')),
+        flush=True)
+
+    # restore the best saved model
+    model['ebd'].load_state_dict(torch.load(best_path + '.pretrain_ebd'))
+    # model['clf'].load_state_dict(torch.load(best_path + '.clf'))
+
+    if args.save:
+        # save the current model
+        out_dir = os.path.abspath(os.path.join(
+            os.path.curdir,
+            "saved-runs",
+            str(int(time.time() * 1e7))))
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        best_path = os.path.join(out_dir, 'best')
+
+        print("{}, Save best model to {}".format(
+            datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+            best_path), flush=True)
+
+        torch.save(model['ebd'].state_dict(), best_path + '.pretrain_ebd')
+        # torch.save(model['clf'].state_dict(), best_path + '.clf')
+
+        with open(best_path + '_args.txt', 'w') as f:
+            for attr, value in sorted(args.__dict__.items()):
+                f.write("{}={}\n".format(attr, value))
+
+    return
+
+
+def train_one(task, model, opt, args, grad):
+    '''
+        Train the model on one sampled task.
+    '''
+    model['ebd'].train()
+    opt.zero_grad()
+
+    support, query = task
+
+    if args.embedding != 'mlad':
+        # Embedding the document
+        XS = model['ebd'](support)
+        YS = support['label']
+
+        XQ = model['ebd'](query)
+        YQ = query['label']
+
+        # Apply the classifier
+        _, loss = model['clf'](XS, YS, XQ, YQ)
+
+    else:
+        # Embedding the document
+        XS, d_logits_S = model['ebd'](support, flag='support')
+        YS = support['label']
+        # print('\nYS', YS)
+
+        XQ, d_logits_Q = model['ebd'](query, flag='query')
+        YQ = query['label']
+        # print('\nYQ', YQ)
+        #
+        # print('\nd_s', d_logits_S.shape)
+        # print('\nd_q', d_logits_Q.shape)
+
+        YS, YQ = reidx_y(YS, YQ, args)
+
+        loss = F.cross_entropy(d_logits_S, YS) + F.cross_entropy(d_logits_Q, YQ)
+        # print("______________________________", loss)
+
+
+    if loss is not None:
+
+        loss.backward()
+
+    if torch.isnan(loss):
+        # do not update the parameters if the gradient is nan
+        print("NAN detected")
+        # print(model['clf'].lam, model['clf'].alpha, model['clf'].beta)
+        return
+
+    if args.clip_grad is not None:
+        nn.utils.clip_grad_value_(grad_param(model, ['ebd']),
+                                  args.clip_grad)
+
+    grad['ebd'].append(get_norm(model['ebd']))
+
+    opt.step()
+
+
+def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None):
+    '''
+        Evaluate the model on a bag of sampled tasks. Return the mean accuracy
+        and its std.
+    '''
+    model['ebd'].eval()
+
+    if sampled_tasks is None:
+        sampled_tasks = ParallelSampler(test_data, args,
+                                        num_episodes).get_epoch()
+
+    acc = []
+    d_acc = []
+    if not args.notqdm:
+        sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
+                             leave=False,
+                             desc=colored('Testing on val', 'yellow'))
+
+    for task in sampled_tasks:
+        if args.embedding == 'mlad':
+            acc1, d_acc1 = test_one(task, model, args)
+            acc.append(acc1)
+            d_acc.append(d_acc1)
+        else:
+            acc.append(test_one(task, model, args))
+
+    acc = np.array(acc)
+    d_acc = np.array(d_acc)
+
+    if verbose:
+        if args.embedding != 'mlad':
+            print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
+                datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+                colored("test acc mean", "blue"),
+                np.mean(acc),
+                colored("test std", "blue"),
+                np.std(acc),
+                ), flush=True)
+        else:
+            print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
+                datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
+                colored("test acc mean", "blue"),
+                np.mean(acc),
+                colored("test std", "blue"),
+                np.std(acc),
+                colored("test d_acc mean", "blue"),
+                np.mean(d_acc),
+                colored("test d_acc std", "blue"),
+                np.std(d_acc),
+            ), flush=True)
+
+    return np.mean(acc), np.std(acc)
+
+
+def test_one(task, model, args):
+    '''
+        Evaluate the model on one sampled task. Return the accuracy.
+    '''
+    support, query = task
+
+    if args.embedding != 'mlad':
+
+        # Embedding the document
+        XS = model['ebd'](support)
+        YS = support['label']
+
+        XQ = model['ebd'](query)
+        YQ = query['label']
+
+        # Apply the classifier
+        acc, _ = model['clf'](XS, YS, XQ, YQ)
+
+        return acc
+
+    else:
+        # Embedding the document
+        XS, d_logits_S = model['ebd'](support, flag='support')
+        YS = support['label']
+
+        XQ, d_logits_Q = model['ebd'](query, flag='query')
+        YQ = query['label']
+
+        # Apply the classifier
+        d_acc = (base.compute_acc(d_logits_Q, YQ) + base.compute_acc(d_logits_S, YS)) / 2
+
+        acc = d_acc
+
+        return acc, d_acc
+
+
+
 def main():
+
     args = parse_args()
 
     print_args(args)
@@ -252,69 +539,15 @@ def main():
     # load data
     train_data, val_data, test_data, vocab = loader.load_dataset(args)
 
+    print(train_data['avg_ebd'], val_data['avg_ebd'])
+
     # initialize model
     model = {}
     model["ebd"] = ebd.get_embedding(vocab, args)
-    model["clf"] = clf.get_classifier(model["ebd"].ebd_dim, args)
 
-    if args.pretrain is not None:
-        model["ebd"] = load_model_state_dict(model["ebd"], args.pretrain)
-
-    if args.mode == "train":
-        # train model on train_data, early stopping based on val_data
-        train_utils.train(train_data, val_data, model, args)
-
-    elif args.mode == "finetune":
-        # sample an example from each class during training
-        way = args.way
-        query = args.query
-        shot = args.shot
-        args.query = 1
-        args.shot = 1
-        args.way = args.n_train_class
-        train_utils.train(train_data, val_data, model, args)
-        # restore the original N-way K-shot setting
-        args.shot = shot
-        args.query = query
-        args.way = way
-
-    # testing on validation data: only for not finetune
-    # In finetune, we combine all train and val classes and split it into train
-    # and validation examples.
-    if args.mode != "finetune":
-        val_acc, val_std = train_utils.test(val_data, model, args,
-                                            args.val_episodes)
-    else:
-        val_acc, val_std = 0, 0
-
-    test_acc, test_std = train_utils.test(test_data, model, args,
-                                          args.test_episodes)
-
-    if args.result_path:
-        directory = args.result_path[:args.result_path.rfind("/")]
-        if not os.path.exists(directory):
-            os.mkdirs(directory)
-
-        result = {
-            "test_acc": test_acc,
-            "test_std": test_std,
-            "val_acc": val_acc,
-            "val_std": val_std
-        }
-
-        for attr, value in sorted(args.__dict__.items()):
-            result[attr] = value
-
-        with open(args.result_path, "wb") as f:
-            pickle.dump(result, f, pickle.HIGHEST_PROTOCOL)
+    train(train_data, model, args)
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        exc_info = sys.exc_info()
-        traceback.print_exception(*exc_info)
-        os.killpg(0, signal.SIGKILL)
+if __name__ == '__main__':
+    main()
 
-    exit(0)

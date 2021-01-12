@@ -111,3 +111,7 @@ venv.bak/
 /pretrain_wordvec
 
 /data
+
+/bin/tmp-runs
+
+/bin/tmp-runs-pretrain

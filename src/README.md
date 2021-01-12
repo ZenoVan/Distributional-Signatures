@@ -1,4 +1,4 @@
-## Model
+ ## Model
 
 Our model is depicted below.
 

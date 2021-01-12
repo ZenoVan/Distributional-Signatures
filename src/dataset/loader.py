@@ -354,7 +354,7 @@ def _split_dataset(data, finetune_split):
     # sort each matrix by ascending label order for each searching
     idx = np.argsort(data['label'], kind="stable")
 
-    non_idx_keys = ['vocab_size', 'classes2id', 'is_train']
+    non_idx_keys = ['vocab_size', 'classes2id', 'is_train', 'n_t', 'n_d', 'avg_ebd']
     for k, v in data.items():
         if k not in non_idx_keys:
             data[k] = v[idx]

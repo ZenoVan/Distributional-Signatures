@@ -11,6 +11,9 @@ def tprint(s):
     print('{}: {}'.format(
         datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'), s),
           flush=True)
+    # print('{}: {}'.format(
+    #     datetime.datetime.now().strftime('%F %T'), s),
+    #       flush=True)
 
 
 def to_tensor(data, cuda, exclude_keys=[]):
@@ -42,6 +45,6 @@ def select_subset(old_data, new_data, keys, idx, max_len=None):
     for k in keys:
         new_data[k] = old_data[k][idx]
         if max_len is not None and len(new_data[k].shape) > 1:
-            new_data[k] = new_data[k][:,:max_len]
+            new_data[k] = new_data[k][:, :max_len]
 
     return new_data
