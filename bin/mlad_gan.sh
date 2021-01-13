@@ -56,7 +56,7 @@ else
     python ../src/main_gan.py \
         --cuda 0 \
         --way 5 \
-        --shot 1 \
+        --shot 5 \
         --query 25 \
         --mode train \
         --embedding mlad \

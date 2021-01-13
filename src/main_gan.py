@@ -322,12 +322,12 @@ class ModelG(nn.Module):
 
         self.ebd_dim = self.ebd.embedding_dim
 
-        self.rnn = RNN(300, 128, 1, True, 0)
-        self.lstm = nn.LSTM(input_size=300, hidden_size=128, num_layers=1, batch_first=True, dropout=0)
+        self.rnn = RNN(300, 150, 1, True, 0)
+        self.lstm = nn.LSTM(input_size=300, hidden_size=150, num_layers=1, batch_first=True, dropout=0)
 
         self.seq = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(256, 128),
+            nn.Linear(300, 128),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(128, 1),
@@ -338,37 +338,63 @@ class ModelG(nn.Module):
         # 将单词转为词向量
         ebd = self.ebd(data)
         w2v = ebd
-
+        avg_sentence_ebd = torch.mean(w2v, dim=1)  # [b, text_len, 300] -> [b, 300]
+        # print('----------avg_sentence_ebd.shape:', avg_sentence_ebd.shape, "-----------")
         # scale = self.compute_score(data, ebd)
         # print("\ndata.shape:", ebd.shape)  # [b, text_len, 300]
 
         # Generator部分
         ebd = self.rnn(ebd, data['text_len'])
         # ebd, (hn, cn) = self.lstm(ebd)
-        # print("\ndata.shape:", ebd.shape)  # [b, text_len, 256]
+        # print("\ndata.shape:", ebd)  # [b, text_len, 256]
+        for j, sentence in enumerate(ebd):
+            if j == 0:
+                key = data['text_len'][j] - 1
+                G_sentence_ebd = sentence[key].reshape((1, -1))
+                # print('first_G_sentence_ebd.shape:', G_sentence_ebd.shape)
+
+            else:
+                key = data['text_len'][j] - 1
+                # print("key:", key)
+                # print('G_sentence_ebd.shape:', G_sentence_ebd.shape)
+                # print('sentence[key].reshape((1, -1)).shape:', sentence[key].shape)
+                G_sentence_ebd = torch.cat([G_sentence_ebd, sentence[key].reshape((1, -1))], 0)
+                # print('after_G_sentence_ebd.shape:', G_sentence_ebd.shape)
+
+        # print('G_sentence_ebd.shape:', G_sentence_ebd.shape)
+
+
         # for i, b in enumerate(ebd):
-        ebd = self.seq(ebd).squeeze(-1)  # [b, text_len, 256] -> [b, text_len]
+        # ebd = self.seq(ebd).squeeze(-1)  # [b, text_len, 256] -> [b, text_len]
+        # G_sentence_ebd = torch.mean(ebd, dim=1)  # [b, text_len, 300] -> [b, 300]
+        # print("\nG_sentence_ebd.shape:", G_sentence_ebd.shape)
+        mul = torch.sum(torch.mul(avg_sentence_ebd, G_sentence_ebd), 1, keepdim=True)  # [b, 1]
+        # print("\nmul.shape:", mul.shape)
+        # print("------------------------------------------------")
         # ebd = torch.max(ebd, dim=-1, keepdim=False)[0]
         # print("\ndata.shape:", ebd.shape)  # [b, text_len]
-        word_weight = F.softmax(ebd, dim=-1)
+        # word_weight = F.softmax(ebd, dim=-1)
+        # word_weight = G_sentence_ebd
         # print("word_weight.shape:", word_weight.shape)  # [b, text_len]
-        sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
+        # sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
+        sentence_ebd = torch.cat((avg_sentence_ebd, G_sentence_ebd), 1)  # [b, 601]
         # print("sentence_ebd.shape:", sentence_ebd.shape)
 
-        reverse_feature = word_weight
 
-        # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
-        if reverse_feature.shape[1] < 500:
-            zero = torch.zeros((reverse_feature.shape[0], 500-reverse_feature.shape[1]))
-            if self.args.cuda != -1:
-               zero = zero.cuda(self.args.cuda)
-            reverse_feature = torch.cat((reverse_feature, zero), dim=-1)
-            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
-        else:
-            reverse_feature = reverse_feature[:, :500]
-            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+        # reverse_feature = word_weight
 
-        return sentence_ebd, reverse_feature
+        # # 将reverse_feature统一变为[b, 500]，长则截断，短则补0
+        # if reverse_feature.shape[1] < 500:
+        #     zero = torch.zeros((reverse_feature.shape[0], 500-reverse_feature.shape[1]))
+        #     if self.args.cuda != -1:
+        #        zero = zero.cuda(self.args.cuda)
+        #     reverse_feature = torch.cat((reverse_feature, zero), dim=-1)
+        #     # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+        # else:
+        #     reverse_feature = reverse_feature[:, :500]
+        #     # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+
+        return sentence_ebd, G_sentence_ebd
 
 
 class ModelD(nn.Module):
@@ -383,7 +409,7 @@ class ModelD(nn.Module):
 
         self.d = nn.Sequential(
                 nn.Dropout(0.2),
-                nn.Linear(500, 256),
+                nn.Linear(300, 256),
                 nn.ReLU(),
                 nn.Dropout(0.2),
                 nn.Linear(256, 64),
@@ -395,7 +421,7 @@ class ModelD(nn.Module):
     def forward(self, reverse_feature):
 
         # 通过判别器
-        logits = self.d(reverse_feature)  # [b, 500] -> [b, 2]
+        logits = self.d(reverse_feature)  # [b, 601] -> [b, 2]
 
         return logits
 
