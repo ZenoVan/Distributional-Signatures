@@ -35,7 +35,7 @@ n_test_class=9
 #n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
-    python ../src/main_gan.py \
+    python ../src/gan_no_source_sample.py \
         --cuda 0 \
         --way 5 \
         --shot 5 \
@@ -53,10 +53,10 @@ if [ "$dataset" = "fewrel" ]; then
 #        --meta_w_target \
 #        --pretrain="../bin/tmp-runs-pretrain/16082801702344212/99.pretrain_ebd"
 else
-    python ../src/main_gan.py \
+    python ../src/gan_no_source_sample.py \
         --cuda 0 \
         --way 5 \
-        --shot 1 \
+        --shot 5 \
         --query 25 \
         --mode train \
         --embedding mlad \
