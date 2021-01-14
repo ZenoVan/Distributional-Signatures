@@ -70,6 +70,7 @@ else
         --k 1 \
         --lr_g 1e-3 \
         --lr_d 1e-3 \
+        --Comments "huffpost origin 1-shot"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
         # --ExponentialLR_gamma 0.98
