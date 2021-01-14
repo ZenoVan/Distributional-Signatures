@@ -32,6 +32,38 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 
+# def make_print_to_file(path='./'):
+#     '''
+#     path， it is a path for save your log about fuction print
+#     example:
+#     use  make_print_to_file()   and the   all the information of funtion print , will be write in to a log file
+#     :return:
+#     '''
+#     import os
+#     import sys
+#     import datetime
+#
+#     class Logger(object):
+#         def __init__(self, filename="Default.log", path="./"):
+#             self.terminal = sys.stdout
+#             self.log = open(os.path.join(path, filename), "a", encoding='utf8', )
+#
+#         def write(self, message):
+#             self.terminal.write(message)
+#             self.log.write(message)
+#
+#         def flush(self):
+#             pass
+#
+#     fileName = datetime.datetime.now().strftime('day' + '%Y_%m_%d')
+#     sys.stdout = Logger(fileName + '.log', path=path)
+#
+#     #############################################################
+#     # 这里输出之后的所有的输出的print 内容即将写入日志
+#     #############################################################
+#     print(fileName.center(60, '*'))
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
             description="Few Shot Text Classification with Distributional Signatures")
@@ -180,7 +212,6 @@ def parse_args():
     # training options
     parser.add_argument("--seed", type=int, default=330, help="seed")
     parser.add_argument("--dropout", type=float, default=0.1, help="drop rate")
-    parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
     parser.add_argument("--patience", type=int, default=20, help="patience")
     parser.add_argument("--clip_grad", type=float, default=None,
                         help="gradient clipping")
@@ -199,6 +230,12 @@ def parse_args():
                         help="path to the pretraiend weights")
 
     parser.add_argument("--pretrain", type=str, default=None, help="path to the pretraiend weights for MLAD")
+    parser.add_argument("--k", type=int, default=None, help="Number of iterations of the adversarial network")
+    parser.add_argument("--lr_g", type=float, default=1e-3, help="learning rate of G")
+    parser.add_argument("--lr_d", type=float, default=1e-3, help="learning rate of D")
+    parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
+    parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
+    parser.add_argument("--Comments", type=str, default="d include 5 layers", help="Comments")
 
     return parser.parse_args()
 
@@ -295,7 +332,7 @@ def task_sampler(data, args):
     all_classes = np.unique(data['label'])
     num_classes = len(all_classes)
 
-    # sample ways
+    # sample classes
     temp = np.random.permutation(num_classes)
     sampled_classes = temp[:args.way]
 
@@ -326,11 +363,7 @@ class ModelG(nn.Module):
         self.lstm = nn.LSTM(input_size=300, hidden_size=128, num_layers=1, batch_first=True, dropout=0)
 
         self.seq = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 1),
+            nn.Linear(256, 1),
         )
 
     def forward(self, data, flag, return_score=False):
@@ -688,44 +721,44 @@ def train_one(task, model, optG, optD, args, grad):
     model['clf'].train()
 
     support, query, source = task
+    for _ in range(args.k):
+        # ***************update D**************
+        optD.zero_grad()
 
-    # ***************update D**************
-    optD.zero_grad()
+        # Embedding the document
+        XS, XS_inputD = model['G'](support, flag='support')
+        YS = support['label']
+        # print('YS', YS)
 
-    # Embedding the document
-    XS, XS_inputD = model['G'](support, flag='support')
-    YS = support['label']
-    # print('YS', YS)
+        XQ, XQ_inputD = model['G'](query, flag='query')
+        YQ = query['label']
+        YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
+        # print('YQ', set(YQ.numpy()))
 
-    XQ, XQ_inputD = model['G'](query, flag='query')
-    YQ = query['label']
-    YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
-    # print('YQ', set(YQ.numpy()))
+        XSource, XSource_inputD = model['G'](source, flag='query')
+        YSource_d = torch.zeros(source['label'].shape, dtype=torch.long).to(source['label'].device)
 
-    XSource, XSource_inputD = model['G'](source, flag='query')
-    YSource_d = torch.zeros(source['label'].shape, dtype=torch.long).to(source['label'].device)
+        XQ_logitsD = model['D'](XQ_inputD)
+        XSource_logitsD = model['D'](XSource_inputD)
 
-    XQ_logitsD = model['D'](XQ_inputD)
-    XSource_logitsD = model['D'](XSource_inputD)
+        d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
+        d_loss.backward(retain_graph=True)
+        grad['D'].append(get_norm(model['D']))
+        optD.step()
 
-    d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
-    d_loss.backward(retain_graph=True)
-    grad['D'].append(get_norm(model['D']))
-    optD.step()
+        # *****************update G****************
+        optG.zero_grad()
+        XQ_logitsD = model['D'](XQ_inputD)
+        XSource_logitsD = model['D'](XSource_inputD)
+        d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
 
-    # *****************update G****************
-    optG.zero_grad()
-    XQ_logitsD = model['D'](XQ_inputD)
-    XSource_logitsD = model['D'](XSource_inputD)
-    d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
+        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
-    acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
-
-    g_loss = loss - d_loss
-    g_loss.backward(retain_graph=True)
-    grad['G'].append(get_norm(model['G']))
-    grad['clf'].append(get_norm(model['clf']))
-    optG.step()
+        g_loss = loss - d_loss
+        g_loss.backward(retain_graph=True)
+        grad['G'].append(get_norm(model['G']))
+        grad['clf'].append(get_norm(model['clf']))
+        optG.step()
 
     return d_acc
 
@@ -747,12 +780,20 @@ def train(train_data, val_data, model, args):
     sub_cycle = 0
     best_path = None
 
-    optG = torch.optim.Adam(grad_param(model, ['G', 'clf']), lr=args.lr)
-    optD = torch.optim.Adam(grad_param(model, ['D']), lr=args.lr)
+    optG = torch.optim.Adam(grad_param(model, ['G', 'clf']), lr=args.lr_g)
+    optD = torch.optim.Adam(grad_param(model, ['D']), lr=args.lr_d)
 
-    # 应该是替换opt所在位置
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #         opt, 'max', patience=args.patience//2, factor=0.1, verbose=True)
+    if args.lr_scheduler == 'ReduceLROnPlateau':
+        schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optG, 'max', patience=args.patience//2, factor=0.1, verbose=True)
+        schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optD, 'max', patience=args.patience // 2, factor=0.1, verbose=True)
+
+    elif args.lr_scheduler == 'ExponentialLR':
+        schedulerG = torch.optim.lr_scheduler.ExponentialLR(optG, gamma=args.ExponentialLR_gamma)
+        schedulerD = torch.optim.lr_scheduler.ExponentialLR(optD, gamma=args.ExponentialLR_gamma)
+
+
 
     print("{}, Start training".format(
         datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')), flush=True)
@@ -832,6 +873,14 @@ def train(train_data, val_data, model, args):
         # Break if the val acc hasn't improved in the past patience epochs
         if sub_cycle == args.patience:
             break
+
+        if args.lr_scheduler == 'ReduceLROnPlateau':
+            schedulerG.step(cur_acc)
+            schedulerD.step(cur_acc)
+
+        elif args.lr_scheduler == 'ExponentialLR':
+            schedulerG.step()
+            schedulerD.step()
 
     print("{}, End of training. Restore the best weights".format(
             datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S')),
@@ -970,6 +1019,9 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
 
 
 def main():
+
+    # make_print_to_file(path='/results')
+
     args = parse_args()
 
     print_args(args)

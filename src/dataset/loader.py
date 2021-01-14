@@ -138,8 +138,8 @@ def _get_huffpost_classes(args):
     '''
 
     train_classes = list(range(20))
-    val_classes = list(range(20,25))
-    test_classes = list(range(25,41))
+    val_classes = list(range(20, 25))
+    test_classes = list(range(25, 41))
 
     return train_classes, val_classes, test_classes
 
@@ -404,11 +404,10 @@ def load_dataset(args):
     assert(len(val_classes) == args.n_val_class)
     assert(len(test_classes) == args.n_test_class)
 
-    if args.mode == 'finetune':
+    if args.train_mode == 't_add_v':
         # in finetune, we combine train and val for training the base classifier
         train_classes = train_classes + val_classes
         args.n_train_class = args.n_train_class + args.n_val_class
-        args.n_val_class = args.n_train_class
 
     tprint('Loading data')
     all_data = _load_json(args.data_path)

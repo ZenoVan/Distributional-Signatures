@@ -56,7 +56,7 @@ else
     python ../src/main_gan.py \
         --cuda 0 \
         --way 5 \
-        --shot 1 \
+        --shot 5 \
         --query 25 \
         --mode train \
         --embedding mlad \
@@ -67,6 +67,12 @@ else
         --n_val_class=$n_val_class \
         --n_test_class=$n_test_class \
         --train_episodes 100 \
+        --k 1 \
+        --lr_g 1e-3 \
+        --lr_d 1e-3 \
+        --train_mode t_add_v
+        # --lr_scheduler ExponentialLR\
+        # --ExponentialLR_gamma 0.98
 #        --pretrain="../bin/tmp-runs-pretrain/16082802589535282/1.pretrain_ebd"
 #        --wv_path = 'pretrain_wordvec' \
 #        --word_vector = 'pretrain_wordvec/wiki.en.vec'
