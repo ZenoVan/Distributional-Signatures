@@ -236,7 +236,7 @@ def parse_args():
     parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
-    parser.add_argument("--Comments", type=str, default="random split and test_val_train", help="Comments")
+    parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
 

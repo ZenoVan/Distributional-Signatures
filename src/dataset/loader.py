@@ -44,20 +44,23 @@ def _get_20newsgroup_classes(args):
             'soc.religion.christian': 19,
         }
 
-    train_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['sci', 'rec']:
-            train_classes.append(label_dict[key])
-
-    val_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['comp']:
-            val_classes.append(label_dict[key])
-
-    test_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
-            test_classes.append(label_dict[key])
+    # train_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['sci', 'rec']:
+    #         train_classes.append(label_dict[key])
+    #
+    # val_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['comp']:
+    #         val_classes.append(label_dict[key])
+    #
+    # test_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
+    #         test_classes.append(label_dict[key])
+    test_classes = list(range(7))
+    val_classes = list(range(7, 12))
+    train_classes = list(range(12, 20))
 
     return train_classes, val_classes, test_classes
 
@@ -137,8 +140,8 @@ def _get_huffpost_classes(args):
         @return list of classes associated with each split
     '''
 
-    train_classes = list(range(20))
-    val_classes = list(range(20, 25))
+    val_classes = list(range(5))
+    train_classes = list(range(5, 25))
     test_classes = list(range(25, 41))
 
     return train_classes, val_classes, test_classes
@@ -149,9 +152,9 @@ def _get_reuters_classes(args):
         @return list of classes associated with each split
     '''
 
-    train_classes = list(range(15))
-    val_classes = list(range(15,20))
-    test_classes = list(range(20,31))
+    test_classes = list(range(11))
+    val_classes = list(range(11, 16))
+    train_classes = list(range(16, 31))
 
     return train_classes, val_classes, test_classes
 
