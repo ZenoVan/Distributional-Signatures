@@ -93,9 +93,9 @@ def _get_amazon_classes(args):
         'Video_Games': 23
     }
 
-    train_classes = [2, 3, 4, 7, 11, 12, 13, 18, 19, 20]
-    val_classes = [1, 22, 23, 6, 9]
-    test_classes = [0, 5, 14, 15, 8, 10, 16, 17, 21]
+    test_classes = list(range(9))
+    val_classes = list(range(9, 14))
+    train_classes = list(range(14, 24))
 
     return train_classes, val_classes, test_classes
 
@@ -405,7 +405,7 @@ def load_dataset(args):
     assert(len(test_classes) == args.n_test_class)
 
     if args.train_mode == 't_add_v':
-        # in finetune, we combine train and val for training the base classifier
+
         train_classes = train_classes + val_classes
         args.n_train_class = args.n_train_class + args.n_val_class
 
