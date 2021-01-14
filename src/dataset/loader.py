@@ -44,20 +44,23 @@ def _get_20newsgroup_classes(args):
             'soc.religion.christian': 19,
         }
 
-    train_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['sci', 'rec']:
-            train_classes.append(label_dict[key])
-
-    val_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['comp']:
-            val_classes.append(label_dict[key])
-
-    test_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
-            test_classes.append(label_dict[key])
+    # train_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['sci', 'rec']:
+    #         train_classes.append(label_dict[key])
+    #
+    # val_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['comp']:
+    #         val_classes.append(label_dict[key])
+    #
+    # test_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
+    #         test_classes.append(label_dict[key])
+    train_classes = list(range(8))
+    val_classes = list(range(8, 13))
+    test_classes = list(range(13, 20))
 
     return train_classes, val_classes, test_classes
 
@@ -138,8 +141,8 @@ def _get_huffpost_classes(args):
     '''
 
     train_classes = list(range(20))
-    val_classes = list(range(20, 25))
-    test_classes = list(range(25, 41))
+    test_classes = list(range(20, 36))
+    val_classes = list(range(36, 41))
 
     return train_classes, val_classes, test_classes
 

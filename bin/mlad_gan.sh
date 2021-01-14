@@ -10,17 +10,17 @@
 #n_val_class=5
 #n_test_class=10
 
-#dataset=20newsgroup
-#data_path="../data/20news.json"
-#n_train_class=8
-#n_val_class=5
-#n_test_class=7
-
-dataset=huffpost
-data_path="../data/huffpost.json"
-n_train_class=20
+dataset=20newsgroup
+data_path="../data/20news.json"
+n_train_class=8
 n_val_class=5
-n_test_class=16
+n_test_class=7
+
+#dataset=huffpost
+#data_path="../data/huffpost.json"
+#n_train_class=20
+#n_val_class=5
+#n_test_class=16
 #
 #dataset=rcv1
 #data_path="../data/rcv1.json"
@@ -70,7 +70,7 @@ else
         --k 1 \
         --lr_g 1e-3 \
         --lr_d 1e-3 \
-        --Comments "huffpost origin 1-shot"
+        --Comments "20news 1-shot random sample classes"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
         # --ExponentialLR_gamma 0.98

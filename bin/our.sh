@@ -55,7 +55,7 @@ else
     python ../src/main.py \
         --cuda 0 \
         --way 5 \
-        --shot 1 \
+        --shot 5 \
         --query 25 \
         --mode finetune \
         --embedding meta \
