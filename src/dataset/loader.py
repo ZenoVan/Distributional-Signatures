@@ -58,9 +58,9 @@ def _get_20newsgroup_classes(args):
     # for key in label_dict.keys():
     #     if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
     #         test_classes.append(label_dict[key])
-    test_classes = list(range(7))
-    val_classes = list(range(7, 12))
-    train_classes = list(range(12, 20))
+    val_classes = list(range(5))
+    train_classes = [5, 6, 7, 17, 19, 11, 12, 13]
+    test_classes = [10, 14, 15, 16, 8, 18, 9]
 
     return train_classes, val_classes, test_classes
 
@@ -140,9 +140,9 @@ def _get_huffpost_classes(args):
         @return list of classes associated with each split
     '''
 
-    val_classes = list(range(5))
-    train_classes = list(range(5, 25))
-    test_classes = list(range(25, 41))
+    val_classes = [32, 38, 28, 1, 2]
+    train_classes = [0, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 29, 33, 34, 35, 36, 37, 40]
+    test_classes = [39, 24, 8, 19, 5, 7, 6, 20, 21, 22, 23, 25, 26, 27, 30, 31]
 
     return train_classes, val_classes, test_classes
 
@@ -152,9 +152,9 @@ def _get_reuters_classes(args):
         @return list of classes associated with each split
     '''
 
-    test_classes = list(range(11))
-    val_classes = list(range(11, 16))
-    train_classes = list(range(16, 31))
+    train_classes = [0, 22, 24, 26, 28, 11, 13, 14, 16, 18, 20, 12, 15, 17, 19]
+    val_classes = [2, 4, 6, 8, 10]
+    test_classes = [1, 3, 5, 7, 9, 21, 23, 25, 27, 29, 30]
 
     return train_classes, val_classes, test_classes
 

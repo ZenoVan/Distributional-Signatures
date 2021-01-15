@@ -10,11 +10,11 @@
 #n_val_class=5
 #n_test_class=10
 
-dataset=20newsgroup
-data_path="../data/20news.json"
-n_train_class=8
-n_val_class=5
-n_test_class=7
+#dataset=20newsgroup
+#data_path="../data/20news.json"
+#n_train_class=8
+#n_val_class=5
+#n_test_class=7
 
 #dataset=huffpost
 #data_path="../data/huffpost.json"
@@ -28,11 +28,11 @@ n_test_class=7
 #n_val_class=10
 #n_test_class=24
 
-#dataset=reuters
-#data_path="../data/reuters.json"
-#n_train_class=15
-#n_val_class=5
-#n_test_class=11
+dataset=reuters
+data_path="../data/reuters.json"
+n_train_class=15
+n_val_class=5
+n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
     python ../src/main_gan.py \
@@ -56,7 +56,7 @@ else
     python ../src/main_gan.py \
         --cuda 0 \
         --way 5 \
-        --shot 5 \
+        --shot 1 \
         --query 25 \
         --mode train \
         --embedding mlad \
@@ -70,7 +70,7 @@ else
         --k 1 \
         --lr_g 1e-3 \
         --lr_d 1e-3 \
-        --Comments "20news random sample classes 5-shot"
+        --Comments "vtrte classes 1-shot"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
         # --ExponentialLR_gamma 0.98
