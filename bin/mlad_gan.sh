@@ -70,7 +70,7 @@ python ../src/main_gan.py \
     --k 1 \
     --lr_g 1e-3 \
     --lr_d 1e-3 \
-    --Comments "20news 1-shot, -IL" \
+    --Comments "debug" \
     --patience 20 \
 #    --ablation "-IL"
         # --train_mode t_add_v

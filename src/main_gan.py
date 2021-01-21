@@ -236,7 +236,7 @@ def parse_args():
     parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
-    parser.add_argument("--ablation", type=str, default="-IL", help="ablation study:[-DAN, -IL, -RR]")
+    parser.add_argument("--ablation", type=str, default="", help="ablation study:[-DAN, -IL]")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -407,6 +407,7 @@ class ModelG(nn.Module):
 
         if self.args.ablation == '-IL':
             sentence_ebd = torch.cat((avg_sentence_ebd, sentence_ebd), 1)
+            print("%%%%%%%%%%%%%%%%%%%%This is ablation mode: -IL%%%%%%%%%%%%%%%%%%")
 
         return sentence_ebd, reverse_feature
 
@@ -764,6 +765,7 @@ def train_one(task, model, optG, optD, args, grad):
         g_loss = loss - d_loss
         if args.ablation == "-DAN":
             g_loss = loss
+            print("%%%%%%%%%%%%%%%%%%%This is ablation mode: -DAN%%%%%%%%%%%%%%%%%%%%%%%%%%")
         g_loss.backward(retain_graph=True)
         grad['G'].append(get_norm(model['G']))
         grad['clf'].append(get_norm(model['clf']))
