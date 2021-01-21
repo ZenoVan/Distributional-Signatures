@@ -1,8 +1,8 @@
-dataset=amazon
-data_path="../data/amazon.json"
-n_train_class=10
-n_val_class=5
-n_test_class=9
+#dataset=amazon
+#data_path="../data/amazon.json"
+#n_train_class=10
+#n_val_class=5
+#n_test_class=9
 
 #dataset=fewrel
 #data_path="../data/fewrel.json"
@@ -10,11 +10,11 @@ n_test_class=9
 #n_val_class=5
 #n_test_class=10
 
-#dataset=20newsgroup
-#data_path="../data/20news.json"
-#n_train_class=8
-#n_val_class=5
-#n_test_class=7
+dataset=20newsgroup
+data_path="../data/20news.json"
+n_train_class=8
+n_val_class=5
+n_test_class=7
 
 #dataset=huffpost
 #data_path="../data/huffpost.json"

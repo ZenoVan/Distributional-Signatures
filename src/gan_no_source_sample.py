@@ -200,6 +200,7 @@ def parse_args():
                         help="path to the pretraiend weights")
 
     parser.add_argument("--pretrain", type=str, default=None, help="path to the pretraiend weights for MLAD")
+    parser.add_argument("--train_mode", type=str, default=None, help="train_mode")
 
     return parser.parse_args()
 
