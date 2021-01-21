@@ -236,7 +236,7 @@ def parse_args():
     parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
-    parser.add_argument("--ablation", type=str, default="-DAN", help="ablation study:[-DAN, -IL, -SS, -RR]")
+    parser.add_argument("--ablation", type=str, default="-IL", help="ablation study:[-DAN, -IL, -SS, -RR]")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -374,6 +374,8 @@ class ModelG(nn.Module):
         ebd = self.ebd(data)
         w2v = ebd
 
+        avg_sentence_ebd = torch.mean(w2v, dim=1)
+
         # scale = self.compute_score(data, ebd)
         # print("\ndata.shape:", ebd.shape)  # [b, text_len, 300]
 
@@ -418,7 +420,7 @@ class ModelG(nn.Module):
             # print('reverse_feature.shape[1]', reverse_feature.shape[1])
 
         if self.args.ablation == '-IL':
-            sentence_ebd =
+            sentence_ebd = torch.cat((avg_sentence_ebd, sentence_ebd), 1)
 
         return sentence_ebd, reverse_feature
 

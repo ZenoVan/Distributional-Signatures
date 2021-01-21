@@ -15,7 +15,7 @@
 #n_train_class=8
 #n_val_class=5
 #n_test_class=7
-
+#
 #dataset=huffpost
 #data_path="../data/huffpost.json"
 #n_train_class=20
@@ -70,9 +70,9 @@ python ../src/main_gan.py \
     --k 1 \
     --lr_g 1e-3 \
     --lr_d 1e-3 \
-    --Comments "Reuters 5-shot, -DAN" \
+    --Comments "Reuters 5-shot, -IL" \
     --patience 20 \
-    # --ablation "-DAN"
+#    --ablation "-IL"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
         # --ExponentialLR_gamma 0.98
