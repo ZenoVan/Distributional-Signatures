@@ -389,6 +389,20 @@ class ModelG(nn.Module):
         # print("word_weight.shape:", word_weight.shape)  # [b, text_len]
         sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
         # print("sentence_ebd.shape:", sentence_ebd.shape)
+        if self.args.ablation == '-DAN' or '-IL':
+            for j, sentence in enumerate(ebd):
+                if j == 0:
+                    key = data['text_len'][j] - 1
+                    sentence_ebd = sentence[key].reshape((1, -1))
+                    # print('first_G_sentence_ebd.shape:', G_sentence_ebd.shape)
+
+                else:
+                    key = data['text_len'][j] - 1
+                    # print("key:", key)
+                    # print('G_sentence_ebd.shape:', G_sentence_ebd.shape)
+                    # print('sentence[key].reshape((1, -1)).shape:', sentence[key].shape)
+                    sentence_ebd = torch.cat([sentence_ebd, sentence[key].reshape((1, -1))], 0)
+                    # print('after_G_sentence_ebd.shape:', G_sentence_ebd.shape)
 
         reverse_feature = word_weight
 
