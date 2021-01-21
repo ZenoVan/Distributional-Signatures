@@ -96,8 +96,8 @@ def _get_amazon_classes(args):
         'Video_Games': 23
     }
 
-    test_classes = list(range(9))
-    val_classes = list(range(9, 14))
+    val_classes = list(range(5))
+    test_classes = list(range(5, 14))
     train_classes = list(range(14, 24))
 
     return train_classes, val_classes, test_classes
@@ -152,9 +152,9 @@ def _get_reuters_classes(args):
         @return list of classes associated with each split
     '''
 
-    train_classes = [0, 22, 24, 26, 28, 11, 13, 14, 16, 18, 20, 12, 15, 17, 19]
-    val_classes = [2, 4, 6, 8, 10]
-    test_classes = [1, 3, 5, 7, 9, 21, 23, 25, 27, 29, 30]
+    train_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    val_classes = [15, 16, 17, 18, 19]
+    test_classes = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
     return train_classes, val_classes, test_classes
 

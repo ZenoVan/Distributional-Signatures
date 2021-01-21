@@ -236,6 +236,7 @@ def parse_args():
     parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
+    parser.add_argument("--ablation", type=str, default="-DAN", help="ablation study:[-DAN, -IL, -SS, -RR]")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -401,6 +402,9 @@ class ModelG(nn.Module):
         else:
             reverse_feature = reverse_feature[:, :500]
             # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+
+        if self.args.ablation == '-IL':
+            sentence_ebd =
 
         return sentence_ebd, reverse_feature
 
@@ -756,6 +760,8 @@ def train_one(task, model, optG, optD, args, grad):
         acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
         g_loss = loss - d_loss
+        if args.ablation == "-DAN":
+            g_loss = loss
         g_loss.backward(retain_graph=True)
         grad['G'].append(get_norm(model['G']))
         grad['clf'].append(get_norm(model['clf']))
