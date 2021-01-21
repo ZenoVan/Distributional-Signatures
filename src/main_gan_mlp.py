@@ -236,7 +236,7 @@ def parse_args():
     parser.add_argument("--lr_scheduler", type=str, default=None, help="lr_scheduler")
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
-    parser.add_argument("--ablation", type=str, default="-IL", help="ablation study:[-DAN, -IL, -RR]")
+    parser.add_argument("--ablation", type=str, default=None, help="ablation study:[-DAN, -IL, -RR]")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -321,7 +321,7 @@ def get_embedding(vocab, args):
 def get_classifier(ebd_dim, args):
     tprint("Building classifier")
 
-    model = R2D2(ebd_dim, args)
+    model = MLP(ebd_dim, args)
 
     if args.cuda != -1:
         return model.cuda(args.cuda)
@@ -390,7 +390,7 @@ class ModelG(nn.Module):
         word_weight = F.softmax(ebd, dim=-1)
         # print("word_weight.shape:", word_weight.shape)  # [b, text_len]
         sentence_ebd = torch.sum((torch.unsqueeze(word_weight, dim=-1)) * w2v, dim=-2)
-        # print("sentence_ebd.shape:", sentence_ebd.shape)
+        # print("sentence_ebd_1.shape:", sentence_ebd.shape)
 
         reverse_feature = word_weight
 
@@ -405,8 +405,7 @@ class ModelG(nn.Module):
             reverse_feature = reverse_feature[:, :500]
             # print('reverse_feature.shape[1]', reverse_feature.shape[1])
 
-        if self.args.ablation == '-IL':
-            sentence_ebd = torch.cat((avg_sentence_ebd, sentence_ebd), 1)
+        # print("sentence_ebd_2.shape:", sentence_ebd.shape)
 
         return sentence_ebd, reverse_feature
 
@@ -438,6 +437,96 @@ class ModelD(nn.Module):
         logits = self.d(reverse_feature)  # [b, 500] -> [b, 2]
 
         return logits
+
+
+class MLP(BASE):
+    '''
+        META-LEARNING WITH DIFFERENTIABLE CLOSED-FORM SOLVERS
+    '''
+    def __init__(self, ebd_dim, args):
+        super(MLP, self).__init__(args)
+        self.ebd_dim = ebd_dim
+
+        self.args = args
+
+        # meta parameters to learn
+        self.lam = nn.Parameter(torch.tensor(-1, dtype=torch.float))
+        self.alpha = nn.Parameter(torch.tensor(0, dtype=torch.float))
+        self.beta = nn.Parameter(torch.tensor(1, dtype=torch.float))
+        # lambda and alpha is learned in the log space
+
+        # cached tensor for speed
+        self.I_support = nn.Parameter(
+            torch.eye(self.args.shot * self.args.way, dtype=torch.float),
+            requires_grad=False)
+        self.I_way = nn.Parameter(torch.eye(self.args.way, dtype=torch.float),
+                                  requires_grad=False)
+
+        self.fc = nn.Linear(300, 5)
+
+    def _compute_w(self, XS, YS_onehot):
+        '''
+            Compute the W matrix of ridge regression
+            @param XS: support_size x ebd_dim
+            @param YS_onehot: support_size x way
+
+            @return W: ebd_dim * way
+        '''
+
+        W = XS.t() @ torch.inverse(
+                XS @ XS.t() + (10. ** self.lam) * self.I_support) @ YS_onehot
+
+        return W
+
+    def _label2onehot(self, Y):
+        '''
+            Map the labels into 0,..., way
+            @param Y: batch_size
+
+            @return Y_onehot: batch_size * ways
+        '''
+        Y_onehot = F.embedding(Y, self.I_way)
+
+        return Y_onehot
+
+    def forward(self, XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d):
+        '''
+            @param XS (support x): support_size x ebd_dim
+            @param YS (support y): support_size
+            @param XQ (support x): query_size x ebd_dim
+            @param YQ (support y): query_size
+
+            @return acc
+            @return loss
+        '''
+
+        YS, YQ = self.reidx_y(YS, YQ)
+
+        YS_onehot = self._label2onehot(YS)
+
+        # W = self._compute_w(XS, YS_onehot)
+        #
+        # pred = (10.0 ** self.alpha) * XQ @ W + self.beta
+        # print("XS_mlp.shape:", XS.shape)
+        X_all = torch.cat((XS, XQ), 0)
+        # print("X_all.shape", X_all.shape)
+        all_pred = self.fc(X_all)
+
+        Spred = all_pred[: XS.shape[0]]
+        # print("Spred.shape", Spred.shape)
+
+        pred = all_pred[XS.shape[0]:]
+        # print("pred.shape", pred.shape)
+
+        Sloss = F.cross_entropy(Spred, YS)
+
+        loss = F.cross_entropy(pred, YQ)
+
+        acc = BASE.compute_acc(pred, YQ)
+
+        d_acc = (BASE.compute_acc(XQ_logitsD, YQ_d) + BASE.compute_acc(XSource_logitsD, YSource_d)) / 2
+
+        return acc, d_acc, loss, Sloss
 
 
 class R2D2(BASE):
@@ -719,7 +808,7 @@ class ParallelSampler_Test():
         del self.done_queue
 
 
-def train_one(task, model, optG, optD, args, grad):
+def train_one(task, model, optG, optD, optCLF, args, grad):
     '''
         Train the model on one sampled task.
     '''
@@ -735,7 +824,8 @@ def train_one(task, model, optG, optD, args, grad):
         # Embedding the document
         XS, XS_inputD = model['G'](support, flag='support')
         YS = support['label']
-        # print('YS', YS)
+        # print('XS.shape', XS.shape)
+        # print('XS_inputD.shape', XS_inputD.shape)
 
         XQ, XQ_inputD = model['G'](query, flag='query')
         YQ = query['label']
@@ -751,23 +841,30 @@ def train_one(task, model, optG, optD, args, grad):
         d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
         d_loss.backward(retain_graph=True)
         grad['D'].append(get_norm(model['D']))
-        optD.step()
+        # optD.step()
 
         # *****************update G****************
         optG.zero_grad()
+        optCLF.zero_grad()
         XQ_logitsD = model['D'](XQ_inputD)
         XSource_logitsD = model['D'](XSource_inputD)
         d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
 
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
+        acc, d_acc, loss, s_loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
         g_loss = loss - d_loss
-        if args.ablation == "-DAN":
-            g_loss = loss
         g_loss.backward(retain_graph=True)
         grad['G'].append(get_norm(model['G']))
+        # optG.step()
+
+        # *****************update CLF****************
+
+        s_loss.backward()
         grad['clf'].append(get_norm(model['clf']))
+        optD.step()
         optG.step()
+        optCLF.step()
+        # *******************************************
 
     return d_acc
 
@@ -789,8 +886,9 @@ def train(train_data, val_data, model, args):
     sub_cycle = 0
     best_path = None
 
-    optG = torch.optim.Adam(grad_param(model, ['G', 'clf']), lr=args.lr_g)
+    optG = torch.optim.Adam(grad_param(model, ['G']), lr=args.lr_g)
     optD = torch.optim.Adam(grad_param(model, ['D']), lr=args.lr_d)
+    optCLF = torch.optim.Adam(grad_param(model, ['clf']), lr=args.lr_g)
 
     if args.lr_scheduler == 'ReduceLROnPlateau':
         schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -830,7 +928,7 @@ def train(train_data, val_data, model, args):
         for task in sampled_tasks:
             if task is None:
                 break
-            d_acc += train_one(task, model, optG, optD, args, grad)
+            d_acc += train_one(task, model, optG, optD, optCLF, args, grad)
 
         d_acc = d_acc / args.train_episodes
 
@@ -965,7 +1063,7 @@ def test_one(task, model, args):
         XSource_logitsD = model['D'](XSource_inputD)
 
         # Apply the classifier
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
+        acc, d_acc, loss, loss_s = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
         return acc, d_acc
 
