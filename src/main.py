@@ -4,6 +4,7 @@ import pickle
 import signal
 import argparse
 import traceback
+import json
 
 import torch
 import numpy as np
@@ -139,7 +140,7 @@ def parse_args():
     parser.add_argument("--wv_path", type=str,
                         default="./",
                         help="path to word vector cache")
-    parser.add_argument("--word_vector", type=str, default="wiki.en.vec",
+    parser.add_argument("--word_vector", type=str, default="../pretrain_wordvec/wiki.en.vec",
                         help=("Name of pretrained word embeddings."))
     parser.add_argument("--finetune_ebd", action="store_true", default=False,
                         help=("Finetune embedding during meta-training"))
@@ -291,8 +292,20 @@ def main():
     else:
         val_acc, val_std = 0, 0
 
-    test_acc, test_std = train_utils.test(test_data, model, args,
-                                          args.test_episodes)
+    test_acc, test_std, XS_all, YS_all, XQ_all, YQ_all = train_utils.test(test_data, model, args,
+                                          args.test_episodes, drawn=True)
+
+    X_data = np.concatenate((XS_all, XQ_all), 0)
+    print('X_data.shape', X_data.shape)
+    Y_data = np.concatenate((YS_all, YQ_all))
+    print('Y_data.shape', Y_data.shape)
+    data = {}
+    data['X'] = X_data.tolist()
+    data['Y'] = Y_data.tolist()
+
+    with open(r'../assets/ds.json', 'w') as f_w:
+        json.dump(data, f_w)
+        print("——————————————存储json成功————————————————")
 
     if args.result_path:
         directory = args.result_path[:args.result_path.rfind("/")]

@@ -10,11 +10,11 @@ def train(train_data, val_data, model, args):
         return regular.train(train_data, val_data, model, args)
 
 
-def test(test_data, model, args, verbose=True):
+def test(test_data, model, args, verbose=True, drawn=False):
 
     if args.maml:
         return maml.test(test_data, model, args, verbose)
     elif args.mode == 'finetune':
         return finetune.test(test_data, model, args, verbose)
     else:
-        return regular.test(test_data, model, args, verbose)
+        return regular.test(test_data, model, args, verbose, drawn=drawn)

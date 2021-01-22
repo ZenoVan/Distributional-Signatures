@@ -10,11 +10,11 @@
 #n_val_class=5
 #n_test_class=10
 
-#dataset=20newsgroup
-#data_path="data/20news.json"
-#n_train_class=8
-#n_val_class=5
-#n_test_class=7
+dataset=20newsgroup
+data_path="../data/20news.json"
+n_train_class=8
+n_val_class=5
+n_test_class=7
 
 #dataset=huffpost
 #data_path="data/huffpost.json"
@@ -27,12 +27,12 @@
 #n_train_class=37
 #n_val_class=10
 #n_test_class=24
-
-dataset=reuters
-data_path="data/reuters.json"
-n_train_class=15
-n_val_class=5
-n_test_class=11
+#
+#dataset=reuters
+#data_path="data/reuters.json"
+#n_train_class=15
+#n_val_class=5
+#n_test_class=11
 
 if [ "$dataset" = "fewrel" ]; then
     python src/main.py \
@@ -52,10 +52,10 @@ if [ "$dataset" = "fewrel" ]; then
         --meta_iwf \
         --meta_w_target
 else
-    python src/main.py \
+    python ../src/main.py \
         --cuda 0 \
         --way 5 \
-        --shot 1 \
+        --shot 5 \
         --query 25 \
         --mode train \
         --embedding meta \
@@ -66,5 +66,6 @@ else
         --n_val_class=$n_val_class \
         --n_test_class=$n_test_class \
         --meta_iwf \
-        --meta_w_target
+        --meta_w_target \
+        --patience 20
 fi

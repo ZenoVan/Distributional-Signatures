@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ed7e3976-b612-4ec4-84e0-b11484eed21a" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/bin/our.sh" beforeDir="false" afterPath="$PROJECT_DIR$/bin/our.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dataset/loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/dataset/loader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/train/factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/train/factory.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/train/regular.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/train/regular.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JupyterTrust" id="ee0e1580-dc0b-4abb-9020-36561c537152" />
+  <component name="ProjectId" id="1kpPwo4i4GPQ8IXhBHjIKXrrWrn" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="settings.editor.selected.configurable" value="preferences.sourceCode" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\workspace\Distributional-Signatures\src" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\workspace\Distributional-Signatures\src" />
+      <recent name="E:\workspace\Distributional-Signatures\bin" />
+      <recent name="E:\workspace\Distributional-Signatures" />
+      <recent name="E:\workspace\Distributional-Signatures\data" />
+      <recent name="E:\workspace\Distributional-Signatures\src\embedding" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.mlad_finetune_2">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Distributional-Signatures" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main_gan" type="PythonConfigurationType" factoryName="Python">
+      <module name="Distributional-Signatures" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="sftp://root@10.11.6.14:10010/opt/conda/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/main_gan.py" />
+      <option name="PARAMETERS" value="--cuda 0 --way 5 --shot 1 --query 25 --mode train --embedding mlad --classifier r2d2 --dataset=20newsgroup --data_path=&quot;../data/20news.json&quot; --n_train_class=8 --n_val_class=5 --n_test_class=7 --train_episodes 100 --k 1 --lr_g 1e-3 --lr_d 1e-3 --Comments &quot;debug&quot; --patience 20 --train_epochs 1 --train_episodes 1 --path_drawn_data &quot;..\drawn_data\data.json&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="mlad_finetune_2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Distributional-Signatures" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/mlad_finetune_2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="visualization" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Distributional-Signatures" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\ProgramData\Anaconda3\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/visualization.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in main_gan.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Distributional-Signatures" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/src/main_gan.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.main_gan" />
+      <item itemvalue="Python.main" />
+      <item itemvalue="Python.visualization" />
+      <item itemvalue="Python tests.pytest in main_gan.py" />
+      <item itemvalue="Python.mlad_finetune_2" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.mlad_finetune_2" />
+        <item itemvalue="Python.visualization" />
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python tests.pytest in main_gan.py" />
+        <item itemvalue="Python tests.pytest in main_gan.py" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SshConsoleOptionsProvider">
+    <option name="myEncoding" value="UTF-8" />
+    <option name="myConnectionType" value="NONE" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ed7e3976-b612-4ec4-84e0-b11484eed21a" name="Default Changelist" comment="" />
+      <created>1606394800944</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1606394800944</updated>
+      <workItem from="1606394801996" duration="6314000" />
+      <workItem from="1606961354538" duration="14296000" />
+      <workItem from="1607043893321" duration="3545000" />
+      <workItem from="1607311254463" duration="26302000" />
+      <workItem from="1607909492938" duration="10793000" />
+      <workItem from="1608021064871" duration="38237000" />
+      <workItem from="1608858619713" duration="607000" />
+      <workItem from="1609747151465" duration="599000" />
+      <workItem from="1610028920979" duration="1367000" />
+      <workItem from="1610090349817" duration="879000" />
+      <workItem from="1610159074311" duration="21441000" />
+      <workItem from="1610240793924" duration="8787000" />
+      <workItem from="1610329311557" duration="53000" />
+      <workItem from="1610329373171" duration="17204000" />
+      <workItem from="1610413244968" duration="31192000" />
+      <workItem from="1610586356477" duration="25929000" />
+      <workItem from="1610672399311" duration="13810000" />
+      <workItem from="1610727683374" duration="1467000" />
+      <workItem from="1610995220468" duration="655000" />
+      <workItem from="1611040295699" duration="1882000" />
+      <workItem from="1611059963858" duration="616000" />
+      <workItem from="1611126159156" duration="2000" />
+      <workItem from="1611128305544" duration="781000" />
+      <workItem from="1611193579213" duration="28657000" />
+      <workItem from="1611277835546" duration="9305000" />
+      <workItem from="1611300246919" duration="11649000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="442" y="141" key="#Deployment" timestamp="1610251138310">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="2472" y="178" key="#Deployment/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1606400757081" />
+    <state x="442" y="141" key="#Deployment/0.0.1536.824@0.0.1536.824" timestamp="1610251138310" />
+    <state x="2662" y="114" width="1092" height="903" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1611280265433">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2662" y="114" width="1092" height="903" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611280265433" />
+    <state x="2660" y="293" key="#com.intellij.ide.macro.MacrosDialog" timestamp="1611239653054">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2660" y="293" key="#com.intellij.ide.macro.MacrosDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611239653054" />
+    <state x="328" y="66" width="1029" height="602" key="#xdebugger.evaluate" timestamp="1611279377092">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="328" y="66" width="1029" height="602" key="#xdebugger.evaluate/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611279377092" />
+    <state x="2012" y="92" width="1736" height="856" key="DiffContextDialog" timestamp="1606396725212">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2012" y="92" width="1736" height="856" key="DiffContextDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1606396725212" />
+    <state x="2012" y="92" width="1736" height="856" key="DirDiffDialog" timestamp="1611283704036">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2012" y="92" width="1736" height="856" key="DirDiffDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611283704036" />
+    <state x="2660" y="275" key="FileChooserDialogImpl" timestamp="1611320005227">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="592" y="218" key="FileChooserDialogImpl/0.0.1536.824/1920.0.1920.1040@0.0.1536.824" timestamp="1611059978307" />
+    <state x="2660" y="275" key="FileChooserDialogImpl/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611320005227" />
+    <state width="1190" height="242" key="GridCell.Tab.0.bottom" timestamp="1611291367374">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1493" height="181" key="GridCell.Tab.0.bottom/0.0.1536.824/1920.0.1920.1040@0.0.1536.824" timestamp="1611243855316" />
+    <state width="1190" height="242" key="GridCell.Tab.0.bottom/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611291367374" />
+    <state width="1190" height="242" key="GridCell.Tab.0.center" timestamp="1611291367374">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1493" height="181" key="GridCell.Tab.0.center/0.0.1536.824/1920.0.1920.1040@0.0.1536.824" timestamp="1611243855316" />
+    <state width="1190" height="242" key="GridCell.Tab.0.center/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611291367374" />
+    <state width="1190" height="242" key="GridCell.Tab.0.left" timestamp="1611291367374">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1493" height="181" key="GridCell.Tab.0.left/0.0.1536.824/1920.0.1920.1040@0.0.1536.824" timestamp="1611243855316" />
+    <state width="1190" height="242" key="GridCell.Tab.0.left/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611291367374" />
+    <state width="1190" height="242" key="GridCell.Tab.0.right" timestamp="1611291367374">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1493" height="181" key="GridCell.Tab.0.right/0.0.1536.824/1920.0.1920.1040@0.0.1536.824" timestamp="1611243855316" />
+    <state width="1190" height="242" key="GridCell.Tab.0.right/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611291367374" />
+    <state width="1236" height="352" key="GridCell.Tab.1.bottom" timestamp="1611279381685">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1236" height="352" key="GridCell.Tab.1.bottom/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611279381685" />
+    <state width="1236" height="352" key="GridCell.Tab.1.center" timestamp="1611279381685">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1236" height="352" key="GridCell.Tab.1.center/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611279381685" />
+    <state width="1236" height="352" key="GridCell.Tab.1.left" timestamp="1611279381685">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1236" height="352" key="GridCell.Tab.1.left/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611279381685" />
+    <state width="1236" height="352" key="GridCell.Tab.1.right" timestamp="1611279381685">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1236" height="352" key="GridCell.Tab.1.right/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611279381685" />
+    <state x="2381" y="164" key="SettingsEditor" timestamp="1608216398898">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2381" y="164" key="SettingsEditor/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1608216398898" />
+    <state x="2692" y="216" key="VCS.ChangeListViewerDialog" timestamp="1606396621617">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2692" y="216" key="VCS.ChangeListViewerDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1606396621617" />
+    <state x="2758" y="250" key="ftp.server.browser" timestamp="1606400752250">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2758" y="250" key="ftp.server.browser/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1606400752250" />
+    <state x="2641" y="232" key="git4idea.branch.GitSmartOperationDialog" timestamp="1611318199066">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2641" y="232" key="git4idea.branch.GitSmartOperationDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1611318199066" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1610595318839">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1610595318839" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Distributional_Signatures$mlad_finetune_2.coverage" NAME="mlad_finetune_2 Coverage Results" MODIFIED="1611239295920" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
+    <SUITE FILE_PATH="coverage/Distributional_Signatures$main_gan.coverage" NAME="main_gan Coverage Results" MODIFIED="1611282504718" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
+    <SUITE FILE_PATH="coverage/Distributional_Signatures$visualization.coverage" NAME="visualization Coverage Results" MODIFIED="1611243263594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
+    <SUITE FILE_PATH="coverage/Distributional_Signatures$main.coverage" NAME="main Coverage Results" MODIFIED="1611239509999" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
+    <SUITE FILE_PATH="coverage/Distributional_Signatures$pytest_in_main_gan_py.coverage" NAME="pytest in main_gan.py Coverage Results" MODIFIED="1611239450977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
+  </component>
+</project>

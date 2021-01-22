@@ -174,7 +174,7 @@ def train_one(task, model, opt, args, grad):
     opt.step()
 
 
-def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None):
+def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None, drawn=False):
     '''
         Evaluate the model on a bag of sampled tasks. Return the mean accuracy
         and its std.
@@ -187,13 +187,31 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                                         num_episodes).get_epoch()
 
     acc = []
+    XS_all = None
+    YS_all = None
+    XQ_all = None
+    YQ_all = None
     if not args.notqdm:
         sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
                              leave=False,
                              desc=colored('Testing on val', 'yellow'))
 
+    count = 0
     for task in sampled_tasks:
-        acc.append(test_one(task, model, args))
+        one_acc, XS, YS, XQ, YQ = test_one(task, model, args)
+        if count < 20:
+            if XS_all is None:
+                XS_all = XS
+                YS_all = YS
+                XQ_all = XQ
+                YQ_all = YQ
+            else:
+                XS_all = np.concatenate((XS_all, XS), 0)
+                YS_all = np.concatenate((YS_all, YS), 0)
+                XQ_all = np.concatenate((XQ_all, XQ), 0)
+                YQ_all = np.concatenate((YQ_all, YQ), 0)
+        count = count + 1
+        acc.append(one_acc)
 
     acc = np.array(acc)
 
@@ -205,8 +223,10 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                 colored("std", "blue"),
                 np.std(acc),
                 ), flush=True)
-
-    return np.mean(acc), np.std(acc)
+    if drawn is True:
+        return np.mean(acc), np.std(acc), XS_all, YS_all, XQ_all, YQ_all
+    else:
+        return np.mean(acc), np.std(acc)
 
 
 def test_one(task, model, args):
@@ -225,4 +245,4 @@ def test_one(task, model, args):
     # Apply the classifier
     acc, _ = model['clf'](XS, YS, XQ, YQ)
 
-    return acc
+    return acc, XS.cpu().detach().numpy(), YS.cpu().detach().numpy(), XQ.cpu().detach().numpy(), YQ.cpu().detach().numpy()

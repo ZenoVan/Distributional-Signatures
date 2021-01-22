@@ -44,20 +44,28 @@ def _get_20newsgroup_classes(args):
             'soc.religion.christian': 19,
         }
 
-    train_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['sci', 'rec']:
-            train_classes.append(label_dict[key])
+    # train_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['sci', 'rec']:
+    #         train_classes.append(label_dict[key])
+    #
+    # val_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] in ['comp']:
+    #         val_classes.append(label_dict[key])
+    #
+    # test_classes = []
+    # for key in label_dict.keys():
+    #     if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
+    #         test_classes.append(label_dict[key])
 
-    val_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] in ['comp']:
-            val_classes.append(label_dict[key])
+    val_classes = [17, 19, 11, 12, 13]
+    train_classes = [0, 1, 2, 3, 4, 5, 6, 7]
+    test_classes = [10, 14, 15, 16, 8, 18, 9]
 
-    test_classes = []
-    for key in label_dict.keys():
-        if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
-            test_classes.append(label_dict[key])
+    # val_classes = list(range(5))
+    # train_classes = list(range(5, 13))
+    # test_classes = list(range(13, 20))
 
     return train_classes, val_classes, test_classes
 
@@ -414,14 +422,6 @@ def load_dataset(args):
     all_data = _load_json(args.data_path)
 
     tprint('Loading word vectors')
-    path = os.path.join(args.wv_path, args.word_vector)
-    if not os.path.exists(path):
-        # Download the word vector and save it locally:
-        tprint('Downloading word vectors')
-        import urllib.request
-        urllib.request.urlretrieve(
-            'https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.vec',
-            path)
 
     vectors = Vectors(args.word_vector, cache=args.wv_path)
     vocab = Vocab(collections.Counter(_read_words(all_data)), vectors=vectors,
