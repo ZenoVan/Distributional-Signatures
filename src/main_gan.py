@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import datetime
 import pickle
 import signal
@@ -237,6 +238,7 @@ def parse_args():
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
     parser.add_argument("--ablation", type=str, default="", help="ablation study:[-DAN, -IL]")
+    parser.add_argument("--path_drawn_data", type=str, default="", help="path_drawn_data")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -368,7 +370,7 @@ class ModelG(nn.Module):
             nn.Linear(256, 1),
         )
 
-    def forward(self, data, flag, return_score=False):
+    def forward(self, data, flag=None, return_score=False):
 
         # 将单词转为词向量
         ebd = self.ebd(data)
@@ -409,7 +411,7 @@ class ModelG(nn.Module):
             sentence_ebd = torch.cat((avg_sentence_ebd, sentence_ebd), 1)
             print("%%%%%%%%%%%%%%%%%%%%This is ablation mode: -IL%%%%%%%%%%%%%%%%%%")
 
-        return sentence_ebd, reverse_feature
+        return sentence_ebd, reverse_feature, avg_sentence_ebd
 
 
 class ModelD(nn.Module):
@@ -734,16 +736,16 @@ def train_one(task, model, optG, optD, args, grad):
         optD.zero_grad()
 
         # Embedding the document
-        XS, XS_inputD = model['G'](support, flag='support')
+        XS, XS_inputD, _ = model['G'](support, flag='support')
         YS = support['label']
         # print('YS', YS)
 
-        XQ, XQ_inputD = model['G'](query, flag='query')
+        XQ, XQ_inputD, _ = model['G'](query, flag='query')
         YQ = query['label']
         YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
         # print('YQ', set(YQ.numpy()))
 
-        XSource, XSource_inputD = model['G'](source, flag='query')
+        XSource, XSource_inputD, _ = model['G'](source, flag='query')
         YSource_d = torch.zeros(source['label'].shape, dtype=torch.long).to(source['label'].device)
 
         XQ_logitsD = model['D'](XQ_inputD)
@@ -840,7 +842,7 @@ def train(train_data, val_data, model, args):
 
         if ep % 10 == 0:
 
-            acc, std = test(train_data, model, args, args.val_episodes, False,
+            acc, std, _ = test(train_data, model, args, args.val_episodes, False,
                             train_gen_val.get_epoch())
             print("{}, {:s} {:2d}, {:s} {:s}{:>7.4f} ± {:>6.4f} ".format(
                 datetime.datetime.now().strftime('%02y/%02m/%02d %H:%M:%S'),
@@ -850,7 +852,7 @@ def train(train_data, val_data, model, args):
                 ), flush=True)
 
         # Evaluate validation accuracy
-        cur_acc, cur_std = test(val_data, model, args, args.val_episodes, False,
+        cur_acc, cur_std, _ = test(val_data, model, args, args.val_episodes, False,
                                 val_gen.get_epoch())
         print(("{}, {:s} {:2d}, {:s} {:s}{:>7.4f} ± {:>6.4f}, "
                "{:s} {:s}{:>7.4f}, {:s}{:>7.4f}").format(
@@ -950,17 +952,17 @@ def test_one(task, model, args):
 
     else:
         # Embedding the document
-        XS, XS_inputD = model['G'](support, flag='support')
+        XS, XS_inputD, XS_avg = model['G'](support, flag='support')
         YS = support['label']
         # print('YS', YS)
 
-        XQ, XQ_inputD = model['G'](query, flag='query')
+        XQ, XQ_inputD, XQ_avg = model['G'](query, flag='query')
         YQ = query['label']
         YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
         # print('YQ', set(YQ.numpy()))
 
         # 这步主要是为了匹配模型输入，下面这几个参数没有什么用
-        XSource, XSource_inputD = model['G'](query, flag='query')
+        XSource, XSource_inputD, _ = model['G'](query, flag='query')
         YSource_d = torch.zeros(query['label'].shape, dtype=torch.long).to(query['label'].device)
 
         XQ_logitsD = model['D'](XQ_inputD)
@@ -969,7 +971,12 @@ def test_one(task, model, args):
         # Apply the classifier
         acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
-        return acc, d_acc
+        all_sentence_ebd = torch.cat((XS, XQ), 0)
+        all_avg_sentence_ebd = torch.cat((XS_avg, XQ_avg), 0)
+        all_label = torch.cat((YS, YQ))
+        # print(all_sentence_ebd.shape, all_avg_sentence_ebd.shape, all_label.shape)
+
+        return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy()
 
 
 def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None):
@@ -987,14 +994,28 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
 
     acc = []
     d_acc = []
+    all_sentence_ebd = None
+    all_avg_sentence_ebd = None
+    all_sentence_label = None
+    all_drawn_data = {}
     if not args.notqdm:
         sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
                              leave=False,
                              desc=colored('Testing on val', 'yellow'))
-
+    count = 0
     for task in sampled_tasks:
         if args.embedding == 'mlad':
-            acc1, d_acc1 = test_one(task, model, args)
+            acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label = test_one(task, model, args)
+            if count < 40:
+                if all_sentence_ebd is None:
+                    all_sentence_ebd = sentence_ebd
+                    all_avg_sentence_ebd = avg_sentence_ebd
+                    all_sentence_label = sentence_label
+                else:
+                    all_sentence_ebd = np.concatenate((all_sentence_ebd, sentence_ebd), 0)
+                    all_avg_sentence_ebd = np.concatenate((all_avg_sentence_ebd, avg_sentence_ebd), 0)
+                    all_sentence_label = np.concatenate((all_sentence_label, sentence_label))
+            count = count + 1
             acc.append(acc1)
             d_acc.append(d_acc1)
         else:
@@ -1002,6 +1023,9 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
 
     acc = np.array(acc)
     d_acc = np.array(d_acc)
+    all_drawn_data["sentence_ebd"] = all_sentence_ebd.tolist()
+    all_drawn_data["avg_sentence_ebd"] = all_avg_sentence_ebd.tolist()
+    all_drawn_data["label"] = all_sentence_label.tolist()
 
     if verbose:
         if args.embedding != 'mlad':
@@ -1025,7 +1049,28 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                 np.std(d_acc),
             ), flush=True)
 
-    return np.mean(acc), np.std(acc)
+    return np.mean(acc), np.std(acc), all_drawn_data
+
+
+def Drawn_Query_Vector(test_data, model, args):
+    """
+    Visualization: Drawn query vector by TSNE or PCA.
+    """
+    test_data['text'] = torch.from_numpy(test_data['text']).cuda()
+    label = test_data['label']
+    sentence_ebd, _, avg_sentence_ebd = model['G'](test_data)
+    data_drawn = {}
+    data_drawn["sentence_ebd"] = sentence_ebd
+    data_drawn["avg_sentence_ebd"] = avg_sentence_ebd
+    data_drawn["label"] = label
+    path = args.path_drawn_data
+    with open(path, 'a') as f_w:
+        f_w.write(data_drawn)
+        f_w.flush()
+        f_w.close()
+
+
+
 
 
 
@@ -1051,11 +1096,16 @@ def main():
         # train model on train_data, early stopping based on val_data
         train(train_data, val_data, model, args)
 
-    val_acc, val_std = test(val_data, model, args,
+    val_acc, val_std, _ = test(val_data, model, args,
                                             args.val_episodes)
 
-    test_acc, test_std = test(test_data, model, args,
+    test_acc, test_std, drawn_data = test(test_data, model, args,
                                           args.test_episodes)
+
+    path_drawn = args.path_drawn_data
+    with open(path_drawn, 'w') as f_w:
+        json.dump(drawn_data, f_w)
+        print("store drawn data finished.")
 
     if args.result_path:
         directory = args.result_path[:args.result_path.rfind("/")]
