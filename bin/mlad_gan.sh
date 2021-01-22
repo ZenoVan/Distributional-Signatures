@@ -10,11 +10,11 @@
 #n_val_class=5
 #n_test_class=10
 #
-dataset=20newsgroup
-data_path="../data/20news.json"
-n_train_class=8
-n_val_class=5
-n_test_class=7
+#dataset=20newsgroup
+#data_path="../data/20news.json"
+#n_train_class=8
+#n_val_class=5
+#n_test_class=7
 #
 #dataset=huffpost
 #data_path="../data/huffpost.json"
@@ -28,11 +28,11 @@ n_test_class=7
 #n_val_class=10
 #n_test_class=24
 #
-#dataset=reuters
-#data_path="../data/reuters.json"
-#n_train_class=15
-#n_val_class=5
-#n_test_class=11
+dataset=reuters
+data_path="../data/reuters.json"
+n_train_class=15
+n_val_class=5
+n_test_class=11
 
 # if [ "$dataset" = "fewrel" ]; then
 #    python ../src/main_gan.py \
@@ -70,8 +70,9 @@ python ../src/main_gan.py \
     --k 1 \
     --lr_g 1e-3 \
     --lr_d 1e-3 \
-    --Comments "debug" \
+    --Comments "reuters_drawn_data_1shot" \
     --patience 20 \
+    --path_drawn_data "../assets/reuters_drawn_data_1shot.json"
 #    --ablation "-IL"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
