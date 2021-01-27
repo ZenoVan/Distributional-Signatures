@@ -10,17 +10,17 @@
 #n_val_class=5
 #n_test_class=10
 #
-dataset=20newsgroup
-data_path="../data/20news.json"
-n_train_class=8
-n_val_class=5
-n_test_class=7
-#
-#dataset=huffpost
-#data_path="../data/huffpost.json"
-#n_train_class=20
+#dataset=20newsgroup
+#data_path="../data/20news.json"
+#n_train_class=8
 #n_val_class=5
-#n_test_class=16
+#n_test_class=7
+#
+dataset=huffpost
+data_path="../data/huffpost.json"
+n_train_class=20
+n_val_class=5
+n_test_class=16
 #
 #dataset=rcv1
 #data_path="../data/rcv1.json"
@@ -70,9 +70,10 @@ python ../src/main_gan.py \
     --k 1 \
     --lr_g 1e-3 \
     --lr_d 1e-3 \
-    --Comments "reuters_drawn_data_1shot" \
+    --Comments "Huffpost_drawn_data_vec" \
     --patience 20 \
-    --path_drawn_data "../assets/20news_drawn_data_2.json"
+    --seed 3 \
+    --path_drawn_data "../assets/huffpost_vec_data.json"
 #    --ablation "-IL"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\

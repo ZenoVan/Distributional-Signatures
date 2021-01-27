@@ -23,7 +23,6 @@ import dataset.loader as loader
 from dataset.utils import tprint
 from embedding.meta import RNN
 import train.factory as train_utils
-from train.utils import load_model_state_dict
 from train.utils import named_grad_param, grad_param, get_norm
 from embedding.wordebd import WORDEBD
 
@@ -238,7 +237,7 @@ def parse_args():
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
     parser.add_argument("--ablation", type=str, default="", help="ablation study:[-DAN, -IL]")
-    parser.add_argument("--path_drawn_data", type=str, default="", help="path_drawn_data")
+    parser.add_argument("--path_drawn_data", type=str, default="huffpost_vec_data.json", help="path_drawn_data")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -935,6 +934,7 @@ def test_one(task, model, args):
         Evaluate the model on one sampled task. Return the accuracy.
     '''
     support, query = task
+    # print("query_text.shape:", query['text'].shape)
 
     if args.embedding != 'mlad':
 
@@ -971,12 +971,24 @@ def test_one(task, model, args):
         # Apply the classifier
         acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
-        all_sentence_ebd = torch.cat((XS, XQ), 0)
-        all_avg_sentence_ebd = torch.cat((XS_avg, XQ_avg), 0)
-        all_label = torch.cat((YS, YQ))
+        all_sentence_ebd = XQ
+        all_avg_sentence_ebd = XQ_avg
+        all_label = YQ
         # print(all_sentence_ebd.shape, all_avg_sentence_ebd.shape, all_label.shape)
 
-        return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy()
+        query_data = query['text']
+        if query_data.shape[1] < 50:
+            zero = torch.zeros((query_data.shape[0], 50-query_data.shape[1]))
+            if args.cuda != -1:
+               zero = zero.cuda(args.cuda)
+            query_data = torch.cat((query_data, zero), dim=-1)
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+        else:
+            query_data = query_data[:, :50]
+            # print('reverse_feature.shape[1]', reverse_feature.shape[1])
+
+
+        return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy(), XQ_inputD.cpu().detach().numpy(), query_data.cpu().detach().numpy()
 
 
 def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None):
@@ -997,6 +1009,8 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     all_sentence_ebd = None
     all_avg_sentence_ebd = None
     all_sentence_label = None
+    all_word_weight = None
+    all_query_data = None
     all_drawn_data = {}
     if not args.notqdm:
         sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
@@ -1005,16 +1019,20 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     count = 0
     for task in sampled_tasks:
         if args.embedding == 'mlad':
-            acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label = test_one(task, model, args)
-            if count < 40:
+            acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label, word_weight, query_data = test_one(task, model, args)
+            if count < 20:
                 if all_sentence_ebd is None:
                     all_sentence_ebd = sentence_ebd
                     all_avg_sentence_ebd = avg_sentence_ebd
                     all_sentence_label = sentence_label
+                    all_word_weight = word_weight
+                    all_query_data = query_data
                 else:
                     all_sentence_ebd = np.concatenate((all_sentence_ebd, sentence_ebd), 0)
                     all_avg_sentence_ebd = np.concatenate((all_avg_sentence_ebd, avg_sentence_ebd), 0)
                     all_sentence_label = np.concatenate((all_sentence_label, sentence_label))
+                    all_word_weight = np.concatenate((all_word_weight, word_weight), 0)
+                    all_query_data = np.concatenate((all_query_data, query_data), 0)
             count = count + 1
             acc.append(acc1)
             d_acc.append(d_acc1)
@@ -1026,6 +1044,9 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     all_drawn_data["sentence_ebd"] = all_sentence_ebd.tolist()
     all_drawn_data["avg_sentence_ebd"] = all_avg_sentence_ebd.tolist()
     all_drawn_data["label"] = all_sentence_label.tolist()
+    all_drawn_data["word_weight"] = all_word_weight.tolist()
+    all_drawn_data["query_data"] = all_query_data.tolist()
+
 
     if verbose:
         if args.embedding != 'mlad':
@@ -1071,7 +1092,19 @@ def Drawn_Query_Vector(test_data, model, args):
 
 
 
+def to_tensor(data, cuda, exclude_keys=[]):
+    '''
+        Convert all values in the data into torch.tensor
+    '''
+    for key in data.keys():
+        if key in exclude_keys:
+            continue
 
+        data[key] = torch.from_numpy(data[key]).to(torch.int64)
+        if cuda != -1:
+            data[key] = data[key].cuda(cuda)
+
+    return data
 
 
 def main():
@@ -1107,6 +1140,9 @@ def main():
         json.dump(drawn_data, f_w)
         print("store drawn data finished.")
 
+    file_path = r'../data/attention_data.json'
+    Print_Attention(file_path, vocab, model, args)
+
     if args.result_path:
         directory = args.result_path[:args.result_path.rfind("/")]
         if not os.path.exists(directory):
@@ -1126,5 +1162,114 @@ def main():
             pickle.dump(result, f, pickle.HIGHEST_PROTOCOL)
 
 
+def Print_Attention(file_path, vocab, model, args):
+    model['G'].eval()
+    word2id = vocab.itos
+
+    data = []
+    for line in open(file_path, 'r'):
+        data.append(json.loads(line))
+
+    output = {}
+    output['text'] = []
+    for i, temp in enumerate(data):
+        output['text'].append(temp['text'])
+
+
+    for i, temp in enumerate(data):
+        tem = []
+        length = len(temp['text'])
+        for word in temp['text']:
+            if word in word2id:
+                tem.append(word2id.index(word))
+        data[i]['text'] = np.array(tem)
+        data[i]['text_len'] = 20
+
+    data2 = {}
+    data2['text'] = []
+    data2['text_len'] = []
+    data2['label'] = []
+    for i, temp in enumerate(data):
+        # 将temp['text']统一变为[20]，长则截断，短则补0
+        if temp['text'].shape[0] < 20:
+            zero = torch.zeros(20 - temp['text'].shape[0])
+            temp['text'] = np.concatenate((temp['text'], zero))
+        else:
+            temp['text'] = temp['text'][:20]
+        data2['text'].append(temp['text'])
+        data2['text_len'].append(temp['text_len'])
+        data2['label'].append(temp['label'])
+
+    data2['text'] = np.array(data2['text'])
+    data2['text_len'] = np.array(data2['text_len'])
+    data2['label'] = np.array(data2['label'])
+
+    query = to_tensor(data2, args.cuda)
+    query['is_support'] = False
+
+    XQ, XQ_inputD, XQ_avg = model['G'](query, flag='query')
+    output['attention'] = []
+    for i, temp in enumerate(data):
+        output['attention'].append(XQ_inputD[i].cpu().detach().numpy().tolist())
+    output_file_path = 'output_attention.json'
+    f_w = open(output_file_path, 'w')
+    f_w.write(json.dumps(output))
+    f_w.flush()
+    f_w.close()
+
+
+def load_model_state_dict(model, model_path):
+    # 初始化模型参数
+    model_dict = model.state_dict()                                    # 取出自己网络的参数字典
+    pretrained_dict = torch.load(model_path)# 加载预训练网络的参数字典
+    # 取出预训练网络的参数字典
+    keys = []
+    for k, v in pretrained_dict.items():
+           keys.append(k)
+
+    i = 0
+
+    # 自己网络和预训练网络结构一致的层，使用预训练网络对应层的参数初始化
+    print("_____________pretrain_parameters______________________________")
+    for k, v in model_dict.items():
+        if v.size() == pretrained_dict[keys[i]].size():
+            model_dict[k] = pretrained_dict[keys[i]]
+            print(model_dict[k])
+            i = i + 1
+        # print(model_dict[k])
+    print("___________________________________________________________")
+    model.load_state_dict(model_dict)
+    return model
+
+
+def main_attention():
+
+    args = parse_args()
+
+    print_args(args)
+
+    set_seed(args.seed)
+
+    # load data
+    train_data, val_data, test_data, vocab = loader.load_dataset(args)
+
+    # initialize model
+    model = {}
+    model["G"], model["D"] = get_embedding(vocab, args)
+    model["clf"] = get_classifier(model["G"].ebd_dim, args)
+
+    best_path = '../bin/tmp-runs/16116280768954578/18'
+    model['G'].load_state_dict(torch.load(best_path + '.G'))
+    # model['D'].load_state_dict(torch.load(best_path + '.D'))
+    # model['clf'].load_state_dict(torch.load(best_path + '.clf'))
+
+    # if args.pretrain is not None:
+    #     model["ebd"] = load_model_state_dict(model["G"], args.pretrain)
+
+    file_path = r'../data/attention_data.json'
+    Print_Attention(file_path, vocab, model, args)
+
+
+
 if __name__ == '__main__':
-    main()
+    main_attention()

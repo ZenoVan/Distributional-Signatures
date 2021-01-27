@@ -115,3 +115,7 @@ venv.bak/
 /bin/tmp-runs
 
 /bin/tmp-runs-pretrain
+
+src/id2word.npy
+
+assets/
