@@ -16,11 +16,11 @@
 #n_val_class=5
 #n_test_class=7
 #
-dataset=huffpost
-data_path="../data/huffpost.json"
-n_train_class=20
-n_val_class=5
-n_test_class=16
+#dataset=huffpost
+#data_path="../data/huffpost.json"
+#n_train_class=20
+#n_val_class=5
+#n_test_class=16
 #
 #dataset=rcv1
 #data_path="../data/rcv1.json"
@@ -28,11 +28,11 @@ n_test_class=16
 #n_val_class=10
 #n_test_class=24
 #
-#dataset=reuters
-#data_path="../data/reuters.json"
-#n_train_class=15
-#n_val_class=5
-#n_test_class=11
+dataset=reuters
+data_path="../data/reuters.json"
+n_train_class=15
+n_val_class=5
+n_test_class=11
 
 # if [ "$dataset" = "fewrel" ]; then
 #    python ../src/main_gan.py \
@@ -73,7 +73,7 @@ python ../src/main_gan.py \
     --Comments "Huffpost_drawn_data_vec" \
     --patience 20 \
     --seed 3 \
-    --path_drawn_data "../assets/huffpost_vec_data.json"
+#    --path_drawn_data "../assets/huffpost_vec_data.json"
 #    --ablation "-IL"
         # --train_mode t_add_v
         # --lr_scheduler ExponentialLR\
@@ -83,4 +83,4 @@ python ../src/main_gan.py \
 #        --word_vector = 'pretrain_wordvec/wiki.en.vec'
 #        --meta_iwf \
 #        --meta_w_target
-fi
+#fi

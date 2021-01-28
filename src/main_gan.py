@@ -237,7 +237,7 @@ def parse_args():
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
     parser.add_argument("--ablation", type=str, default="", help="ablation study:[-DAN, -IL]")
-    parser.add_argument("--path_drawn_data", type=str, default="huffpost_vec_data.json", help="path_drawn_data")
+    # parser.add_argument("--path_drawn_data", type=str, default="huffpost_vec_data.json", help="path_drawn_data")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
 
     return parser.parse_args()
@@ -1073,22 +1073,22 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     return np.mean(acc), np.std(acc), all_drawn_data
 
 
-def Drawn_Query_Vector(test_data, model, args):
-    """
-    Visualization: Drawn query vector by TSNE or PCA.
-    """
-    test_data['text'] = torch.from_numpy(test_data['text']).cuda()
-    label = test_data['label']
-    sentence_ebd, _, avg_sentence_ebd = model['G'](test_data)
-    data_drawn = {}
-    data_drawn["sentence_ebd"] = sentence_ebd
-    data_drawn["avg_sentence_ebd"] = avg_sentence_ebd
-    data_drawn["label"] = label
-    path = args.path_drawn_data
-    with open(path, 'a') as f_w:
-        f_w.write(data_drawn)
-        f_w.flush()
-        f_w.close()
+# def Drawn_Query_Vector(test_data, model, args):
+#     """
+#     Visualization: Drawn query vector by TSNE or PCA.
+#     """
+#     test_data['text'] = torch.from_numpy(test_data['text']).cuda()
+#     label = test_data['label']
+#     sentence_ebd, _, avg_sentence_ebd = model['G'](test_data)
+#     data_drawn = {}
+#     data_drawn["sentence_ebd"] = sentence_ebd
+#     data_drawn["avg_sentence_ebd"] = avg_sentence_ebd
+#     data_drawn["label"] = label
+#     path = args.path_drawn_data
+#     with open(path, 'a') as f_w:
+#         f_w.write(data_drawn)
+#         f_w.flush()
+#         f_w.close()
 
 
 
@@ -1135,13 +1135,13 @@ def main():
     test_acc, test_std, drawn_data = test(test_data, model, args,
                                           args.test_episodes)
 
-    path_drawn = args.path_drawn_data
-    with open(path_drawn, 'w') as f_w:
-        json.dump(drawn_data, f_w)
-        print("store drawn data finished.")
-
-    file_path = r'../data/attention_data.json'
-    Print_Attention(file_path, vocab, model, args)
+    # path_drawn = args.path_drawn_data
+    # with open(path_drawn, 'w') as f_w:
+    #     json.dump(drawn_data, f_w)
+    #     print("store drawn data finished.")
+    #
+    # file_path = r'../data/attention_data.json'
+    # Print_Attention(file_path, vocab, model, args)
 
     if args.result_path:
         directory = args.result_path[:args.result_path.rfind("/")]
@@ -1272,4 +1272,4 @@ def main_attention():
 
 
 if __name__ == '__main__':
-    main_attention()
+    main()
