@@ -84,6 +84,13 @@ def parse_args():
                         help=("Finetune embedding during meta-training"))
 
     # training options
+    # model options
+    parser.add_argument("--embedding", type=str, default="mlad",
+                        help=("document embedding method."))
+    parser.add_argument("--classifier", type=str, default="r2d2",
+                        help=("classifier."))
+    parser.add_argument("--auxiliary", type=str, nargs="*", default=[],
+                        help=("auxiliary embeddings (used for fewrel)."))
     parser.add_argument("--seed", type=int, default=330, help="seed")
     parser.add_argument("--dropout", type=float, default=0.1, help="drop rate")
     parser.add_argument("--patience", type=int, default=20, help="patience")
@@ -124,24 +131,6 @@ def print_args(args):
     """
     print("\nParameters:")
     for attr, value in sorted(args.__dict__.items()):
-        if args.embedding != "cnn" and attr[:4] == "cnn_":
-            continue
-        if args.classifier != "proto" and attr[:6] == "proto_":
-            continue
-        if args.classifier != "nn" and attr[:3] == "nn_":
-            continue
-        if args.embedding != "meta" and attr[:5] == "meta_":
-            continue
-        if args.embedding != "cnn" and attr[:4] == "cnn_":
-            continue
-        if args.classifier != "mlp" and attr[:4] == "mlp_":
-            continue
-        if args.classifier != "proto" and attr[:6] == "proto_":
-            continue
-        if "pos" not in args.auxiliary and attr[:4] == "pos_":
-            continue
-        if not args.maml and attr[:5] == "maml_":
-            continue
         print("\t{}={}".format(attr.upper(), value))
     print("""
     ◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇
@@ -216,7 +205,7 @@ def task_sampler(data, args):
 
     source_classes = temp[args.way:args.way + args.way]
 
-    return sampled_classes, source_classes  # 存的是idx_list的索引
+    return sampled_classes, source_classes
 
 
 class ModelG(nn.Module):
@@ -227,7 +216,6 @@ class ModelG(nn.Module):
         self.args = args
 
         self.ebd = ebd
-        # self.aux = get_embedding(args)
 
         self.ebd_dim = self.ebd.embedding_dim
 
@@ -958,25 +946,6 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     return np.mean(acc), np.std(acc), all_drawn_data
 
 
-# def Drawn_Query_Vector(test_data, model, args):
-#     """
-#     Visualization: Drawn query vector by TSNE or PCA.
-#     """
-#     test_data['text'] = torch.from_numpy(test_data['text']).cuda()
-#     label = test_data['label']
-#     sentence_ebd, _, avg_sentence_ebd = model['G'](test_data)
-#     data_drawn = {}
-#     data_drawn["sentence_ebd"] = sentence_ebd
-#     data_drawn["avg_sentence_ebd"] = avg_sentence_ebd
-#     data_drawn["label"] = label
-#     path = args.path_drawn_data
-#     with open(path, 'a') as f_w:
-#         f_w.write(data_drawn)
-#         f_w.flush()
-#         f_w.close()
-
-
-
 def to_tensor(data, cuda, exclude_keys=[]):
     '''
         Convert all values in the data into torch.tensor
@@ -1155,8 +1124,6 @@ def main_attention():
 
     file_path = r'../data/attention_data.json'
     Print_Attention(file_path, vocab, model, args)
-
-
 
 if __name__ == '__main__':
     main()

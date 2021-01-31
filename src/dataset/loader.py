@@ -259,56 +259,27 @@ def _data_to_nparray(data, vocab, args):
 
     raw = np.array([e['text'] for e in data], dtype=object)
 
-    if args.bert:
-        tokenizer = BertTokenizer.from_pretrained(
-                'bert-base-uncased', do_lower_case=True)
 
-        # convert to wpe
-        vocab_size = 0  # record the maximum token id for computing idf
-        for e in data:
-            e['bert_id'] = tokenizer.encode(" ".join(e['text']),
-                                            add_special_tokens=True)
-                                            # max_length=80)
-            vocab_size = max(max(e['bert_id'])+1, vocab_size)
+    # compute the max text length
+    text_len = np.array([len(e['text']) for e in data])
+    max_text_len = max(text_len)
 
-        text_len = np.array([len(e['bert_id']) for e in data])
-        max_text_len = max(text_len)
+    # initialize the big numpy array by <pad>
+    text = vocab.stoi['<pad>'] * np.ones([len(data), max_text_len],
+                                     dtype=np.int64)
 
-        text = np.zeros([len(data), max_text_len], dtype=np.int64)
+    del_idx = []
+    # convert each token to its corresponding id
+    for i in range(len(data)):
+        text[i, :len(data[i]['text'])] = [
+                vocab.stoi[x] if x in vocab.stoi else vocab.stoi['<unk>']
+                for x in data[i]['text']]
 
-        del_idx = []
-        # convert each token to its corresponding id
-        for i in range(len(data)):
-            text[i, :len(data[i]['bert_id'])] = data[i]['bert_id']
+        # filter out document with only unk and pad
+        if np.max(text[i]) < 2:
+            del_idx.append(i)
 
-            # filter out document with only special tokens
-            # unk (100), cls (101), sep (102), pad (0)
-            if np.max(text[i]) < 103:
-                del_idx.append(i)
-
-        text_len = text_len
-
-    else:
-        # compute the max text length
-        text_len = np.array([len(e['text']) for e in data])
-        max_text_len = max(text_len)
-
-        # initialize the big numpy array by <pad>
-        text = vocab.stoi['<pad>'] * np.ones([len(data), max_text_len],
-                                         dtype=np.int64)
-
-        del_idx = []
-        # convert each token to its corresponding id
-        for i in range(len(data)):
-            text[i, :len(data[i]['text'])] = [
-                    vocab.stoi[x] if x in vocab.stoi else vocab.stoi['<unk>']
-                    for x in data[i]['text']]
-
-            # filter out document with only unk and pad
-            if np.max(text[i]) < 2:
-                del_idx.append(i)
-
-        vocab_size = vocab.vectors.size()[0]
+    vocab_size = vocab.vectors.size()[0]
 
     text_len, text, doc_label, raw = _del_by_idx(
             [text_len, text, doc_label, raw], del_idx, 0)
@@ -320,14 +291,6 @@ def _data_to_nparray(data, vocab, args):
         'raw': raw,
         'vocab_size': vocab_size,
     }
-
-    if 'pos' in args.auxiliary:
-        # use positional information in fewrel
-        head = np.vstack([e['head'] for e in data])
-        tail = np.vstack([e['tail'] for e in data])
-
-        new_data['head'], new_data['tail'] = _del_by_idx(
-            [head, tail], del_idx, 0)
 
     return new_data
 
@@ -404,14 +367,6 @@ def load_dataset(args):
     all_data = _load_json(args.data_path)
 
     tprint('Loading word vectors')
-    # path = os.path.join(args.wv_path, args.word_vector)
-    # if not os.path.exists(path):
-    #     # Download the word vector and save it locally:
-    #     tprint('Downloading word vectors')
-    #     import urllib.request
-    #     urllib.request.urlretrieve(
-    #         'https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.vec',
-    #         path)
 
     vectors = Vectors(args.word_vector, cache=args.wv_path)
     vocab = Vocab(collections.Counter(_read_words(all_data)), vectors=vectors,
@@ -444,27 +399,5 @@ def load_dataset(args):
     # this tag is used for distinguishing train/val/test when creating source pool
 
     stats.precompute_stats(train_data, val_data, test_data, args)
-
-    if args.meta_w_target:
-        # augment meta model by the support features
-        if args.bert:
-            ebd = CXTEBD(args.pretrained_bert,
-                         cache_dir=args.bert_cache_dir,
-                         finetune_ebd=False,
-                         return_seq=True)
-        else:
-            ebd = WORDEBD(vocab, finetune_ebd=False)
-
-        train_data['avg_ebd'] = AVG(ebd, args)
-        if args.cuda != -1:
-            train_data['avg_ebd'] = train_data['avg_ebd'].cuda(args.cuda)
-
-        val_data['avg_ebd'] = train_data['avg_ebd']
-        test_data['avg_ebd'] = train_data['avg_ebd']
-
-    # if finetune, train_classes = val_classes and we sample train and val data
-    # from train_data
-    if args.mode == 'finetune':
-        train_data, val_data = _split_dataset(train_data, args.finetune_split)
 
     return train_data, val_data, test_data, vocab
