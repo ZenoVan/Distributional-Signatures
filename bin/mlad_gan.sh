@@ -29,7 +29,7 @@
 #n_test_class=24
 #
 dataset=reuters
-data_path="../data/reuters.json"
+data_path="../data/reuters_diy.json"
 n_train_class=15
 n_val_class=5
 n_test_class=11
@@ -70,9 +70,10 @@ python ../src/main_gan.py \
     --k 1 \
     --lr_g 1e-3 \
     --lr_d 1e-3 \
-    --Comments "Huffpost_drawn_data_vec" \
-    --patience 20 \
+    --Comments "reuters" \
+    --patience 15 \
     --seed 3 \
+#    --test_episodes 100 \
 #    --path_drawn_data "../assets/huffpost_vec_data.json"
 #    --ablation "-IL"
         # --train_mode t_add_v

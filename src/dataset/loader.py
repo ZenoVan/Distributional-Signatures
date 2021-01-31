@@ -44,23 +44,9 @@ def _get_20newsgroup_classes(args):
             'soc.religion.christian': 19,
         }
 
-    # train_classes = []
-    # for key in label_dict.keys():
-    #     if key[:key.find('.')] in ['sci', 'rec']:
-    #         train_classes.append(label_dict[key])
-    #
-    # val_classes = []
-    # for key in label_dict.keys():
-    #     if key[:key.find('.')] in ['comp']:
-    #         val_classes.append(label_dict[key])
-    #
-    # test_classes = []
-    # for key in label_dict.keys():
-    #     if key[:key.find('.')] not in ['comp', 'sci', 'rec']:
-    #         test_classes.append(label_dict[key])
     val_classes = list(range(5))
-    train_classes = [5, 6, 7, 17, 19, 11, 12, 13]
-    test_classes = [10, 14, 15, 16, 8, 18, 9]
+    train_classes = list(range(5, 13))
+    test_classes = list(range(13, 20))
 
     return train_classes, val_classes, test_classes
 
@@ -154,7 +140,9 @@ def _get_reuters_classes(args):
 
     train_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     val_classes = [15, 16, 17, 18, 19]
+    # val_classes = [20, 21, 22, 23, 24]
     test_classes = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    # test_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     return train_classes, val_classes, test_classes
 

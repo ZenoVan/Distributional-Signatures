@@ -32,38 +32,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 
-# def make_print_to_file(path='./'):
-#     '''
-#     path， it is a path for save your log about fuction print
-#     example:
-#     use  make_print_to_file()   and the   all the information of funtion print , will be write in to a log file
-#     :return:
-#     '''
-#     import os
-#     import sys
-#     import datetime
-#
-#     class Logger(object):
-#         def __init__(self, filename="Default.log", path="./"):
-#             self.terminal = sys.stdout
-#             self.log = open(os.path.join(path, filename), "a", encoding='utf8', )
-#
-#         def write(self, message):
-#             self.terminal.write(message)
-#             self.log.write(message)
-#
-#         def flush(self):
-#             pass
-#
-#     fileName = datetime.datetime.now().strftime('day' + '%Y_%m_%d')
-#     sys.stdout = Logger(fileName + '.log', path=path)
-#
-#     #############################################################
-#     # 这里输出之后的所有的输出的print 内容即将写入日志
-#     #############################################################
-#     print(fileName.center(60, '*'))
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
             description="Few Shot Text Classification with Distributional Signatures")
@@ -87,14 +55,6 @@ def parse_args():
     parser.add_argument("--n_workers", type=int, default=10,
                         help="Num. of cores used for loading data. Set this "
                         "to zero if you want to use all the cpus.")
-    parser.add_argument("--bert", default=False, action="store_true",
-                        help=("set true if use bert embeddings "
-                              "(only available for sent-level datasets: "
-                              "huffpost, fewrel"))
-    parser.add_argument("--bert_cache_dir", default=None, type=str,
-                        help=("path to the cache_dir of transformers"))
-    parser.add_argument("--pretrained_bert", default=None, type=str,
-                        help=("path to the pre-trained bert embeddings."))
 
     # task configuration
     parser.add_argument("--way", type=int, default=5,
@@ -114,77 +74,6 @@ def parse_args():
     parser.add_argument("--test_episodes", type=int, default=1000,
                         help="#tasks sampled during each testing epoch")
 
-    # settings for finetuning baseline
-    parser.add_argument("--finetune_loss_type", type=str, default="softmax",
-                        help="type of loss for finetune top layer"
-                        "options: [softmax, dist]")
-    parser.add_argument("--finetune_maxepochs", type=int, default=5000,
-                        help="number epochs to finetune each task for (inner loop)")
-    parser.add_argument("--finetune_episodes", type=int, default=10,
-                        help="number tasks to finetune for (outer loop)")
-    parser.add_argument("--finetune_split", default=0.8, type=float,
-                        help="percent of train data to allocate for val"
-                             "when mode is finetune")
-
-    # model options
-    parser.add_argument("--embedding", type=str, default="avg",
-                        help=("document embedding method. Options: "
-                              "[avg, tfidf, meta, oracle, cnn]"))
-    parser.add_argument("--classifier", type=str, default="nn",
-                        help=("classifier. Options: [nn, proto, r2d2, mlp]"))
-    parser.add_argument("--auxiliary", type=str, nargs="*", default=[],
-                        help=("auxiliary embeddings (used for fewrel). "
-                              "Options: [pos, ent]"))
-
-    # cnn configuration
-    parser.add_argument("--cnn_num_filters", type=int, default=50,
-                        help="Num of filters per filter size [default: 50]")
-    parser.add_argument("--cnn_filter_sizes", type=int, nargs="+",
-                        default=[3, 4, 5],
-                        help="Filter sizes [default: 3]")
-
-    # nn configuration
-    parser.add_argument("--nn_distance", type=str, default="l2",
-                        help=("distance for nearest neighbour. "
-                              "Options: l2, cos [default: l2]"))
-
-    # proto configuration
-    parser.add_argument("--proto_hidden", nargs="+", type=int,
-                        default=[300, 300],
-                        help=("hidden dimension of the proto-net"))
-
-    # maml configuration
-    parser.add_argument("--maml", action="store_true", default=False,
-                        help=("Use maml or not. "
-                        "Note: maml has to be used with classifier=mlp"))
-    parser.add_argument("--mlp_hidden", nargs="+", type=int, default=[300, 5],
-                        help=("hidden dimension of the proto-net"))
-    parser.add_argument("--maml_innersteps", type=int, default=10)
-    parser.add_argument("--maml_batchsize", type=int, default=10)
-    parser.add_argument("--maml_stepsize", type=float, default=1e-1)
-    parser.add_argument("--maml_firstorder", action="store_true", default=False,
-                        help="truncate higher order gradient")
-
-    # lrd2 configuration
-    parser.add_argument("--lrd2_num_iters", type=int, default=5,
-                        help=("num of Newton steps for LRD2"))
-
-    # induction networks configuration
-    parser.add_argument("--induct_rnn_dim", type=int, default=128,
-                        help=("Uni LSTM dim of induction network's encoder"))
-    parser.add_argument("--induct_hidden_dim", type=int, default=100,
-                        help=("tensor layer dim of induction network's relation"))
-    parser.add_argument("--induct_iter", type=int, default=3,
-                        help=("num of routings"))
-    parser.add_argument("--induct_att_dim", type=int, default=64,
-                        help=("attention projection dim of induction network"))
-
-    # aux ebd configuration (for fewrel)
-    parser.add_argument("--pos_ebd_dim", type=int, default=5,
-                        help="Size of position embedding")
-    parser.add_argument("--pos_max_len", type=int, default=40,
-                        help="Maximum sentence length for position embedding")
-
     # base word embedding
     parser.add_argument("--wv_path", type=str,
                         default='../pretrain_wordvec',
@@ -193,21 +82,6 @@ def parse_args():
                         help=("Name of pretrained word embeddings."))
     parser.add_argument("--finetune_ebd", action="store_true", default=False,
                         help=("Finetune embedding during meta-training"))
-
-    # options for the distributional signatures
-    parser.add_argument("--meta_idf", action="store_true", default=False,
-                        help="use idf")
-    parser.add_argument("--meta_iwf", action="store_true", default=False,
-                        help="use iwf")
-    parser.add_argument("--meta_w_target", action="store_true", default=False,
-                        help="use target importance score")
-    parser.add_argument("--meta_w_target_lam", type=float, default=1,
-                        help="lambda for computing w_target")
-    parser.add_argument("--meta_target_entropy", action="store_true", default=False,
-                        help="use inverse entropy to model task-specific importance")
-    parser.add_argument("--meta_ebd", action="store_true", default=False,
-                        help="use word embedding into the meta model "
-                        "(showing that revealing word identity harm performance)")
 
     # training options
     parser.add_argument("--seed", type=int, default=330, help="seed")
@@ -219,7 +93,7 @@ def parse_args():
                         help="cuda device, -1 for cpu")
     parser.add_argument("--mode", type=str, default="test",
                         help=("Running mode."
-                              "Options: [train, test, finetune]"
+                              "Options: [train, test]"
                               "[Default: test]"))
     parser.add_argument("--save", action="store_true", default=False,
                         help="train the model")
@@ -237,8 +111,9 @@ def parse_args():
     parser.add_argument("--ExponentialLR_gamma", type=float, default=0.98, help="ExponentialLR_gamma")
     parser.add_argument("--train_mode", type=str, default=None, help="you can choose t_add_v or None")
     parser.add_argument("--ablation", type=str, default="", help="ablation study:[-DAN, -IL]")
-    # parser.add_argument("--path_drawn_data", type=str, default="huffpost_vec_data.json", help="path_drawn_data")
+    parser.add_argument("--path_drawn_data", type=str, default="reuters_False_data.json", help="path_drawn_data")
     parser.add_argument("--Comments", type=str, default="", help="Comments")
+    parser.add_argument("--id2word", default=None, help="id2word")
 
     return parser.parse_args()
 
@@ -340,12 +215,6 @@ def task_sampler(data, args):
     sampled_classes = temp[:args.way]
 
     source_classes = temp[args.way:args.way + args.way]
-
-    # source_classes = []
-    # for j in range(num_classes):
-    #     if j not in sampled_classes:
-    #         source_classes.append(all_classes[j])
-    # source_classes = sorted(source_classes)
 
     return sampled_classes, source_classes  # 存的是idx_list的索引
 
@@ -490,7 +359,7 @@ class R2D2(BASE):
 
         return Y_onehot
 
-    def forward(self, XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d):
+    def forward(self, XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d, query_data=None):
         '''
             @param XS (support x): support_size x ebd_dim
             @param YS (support y): support_size
@@ -515,7 +384,12 @@ class R2D2(BASE):
 
         d_acc = (BASE.compute_acc(XQ_logitsD, YQ_d) + BASE.compute_acc(XSource_logitsD, YSource_d)) / 2
 
-        return acc, d_acc, loss
+        if query_data is not None:
+            y_hat = torch.argmax(pred, dim=1)
+            X_hat = query_data[y_hat != YQ]
+            return acc, d_acc, loss, X_hat
+        else:
+            return acc, d_acc, loss, loss
 
 
 class ParallelSampler():
@@ -761,7 +635,7 @@ def train_one(task, model, optG, optD, args, grad):
         XSource_logitsD = model['D'](XSource_inputD)
         d_loss = F.cross_entropy(XQ_logitsD, YQ_d) + F.cross_entropy(XSource_logitsD, YSource_d)
 
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
+        acc, d_acc, loss, _ = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
 
         g_loss = loss - d_loss
         if args.ablation == "-DAN":
@@ -968,27 +842,28 @@ def test_one(task, model, args):
         XQ_logitsD = model['D'](XQ_inputD)
         XSource_logitsD = model['D'](XSource_inputD)
 
-        # Apply the classifier
-        acc, d_acc, loss = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d)
-
-        all_sentence_ebd = XQ
-        all_avg_sentence_ebd = XQ_avg
-        all_label = YQ
-        # print(all_sentence_ebd.shape, all_avg_sentence_ebd.shape, all_label.shape)
-
+        # 把原始数据变成长度都为50，为了可视化的，不影响最终结果
         query_data = query['text']
         if query_data.shape[1] < 50:
-            zero = torch.zeros((query_data.shape[0], 50-query_data.shape[1]))
+            zero = torch.zeros((query_data.shape[0], 50 - query_data.shape[1]))
             if args.cuda != -1:
-               zero = zero.cuda(args.cuda)
+                zero = zero.cuda(args.cuda)
             query_data = torch.cat((query_data, zero), dim=-1)
             # print('reverse_feature.shape[1]', reverse_feature.shape[1])
         else:
             query_data = query_data[:, :50]
             # print('reverse_feature.shape[1]', reverse_feature.shape[1])
 
+        # Apply the classifier
+        acc, d_acc, loss, x_hat = model['clf'](XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d, query_data)
 
-        return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy(), XQ_inputD.cpu().detach().numpy(), query_data.cpu().detach().numpy()
+        all_sentence_ebd = XQ
+        all_avg_sentence_ebd = XQ_avg
+        all_label = YQ
+        # print(all_sentence_ebd.shape, all_avg_sentence_ebd.shape, all_label.shape)
+
+
+        return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy(), XQ_inputD.cpu().detach().numpy(), query_data.cpu().detach().numpy(), x_hat.cpu().detach().numpy()
 
 
 def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None):
@@ -1011,6 +886,7 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     all_sentence_label = None
     all_word_weight = None
     all_query_data = None
+    all_x_hat = None
     all_drawn_data = {}
     if not args.notqdm:
         sampled_tasks = tqdm(sampled_tasks, total=num_episodes, ncols=80,
@@ -1019,7 +895,7 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     count = 0
     for task in sampled_tasks:
         if args.embedding == 'mlad':
-            acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label, word_weight, query_data = test_one(task, model, args)
+            acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label, word_weight, query_data, x_hat = test_one(task, model, args)
             if count < 20:
                 if all_sentence_ebd is None:
                     all_sentence_ebd = sentence_ebd
@@ -1027,12 +903,14 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                     all_sentence_label = sentence_label
                     all_word_weight = word_weight
                     all_query_data = query_data
+                    all_x_hat = x_hat
                 else:
                     all_sentence_ebd = np.concatenate((all_sentence_ebd, sentence_ebd), 0)
                     all_avg_sentence_ebd = np.concatenate((all_avg_sentence_ebd, avg_sentence_ebd), 0)
                     all_sentence_label = np.concatenate((all_sentence_label, sentence_label))
                     all_word_weight = np.concatenate((all_word_weight, word_weight), 0)
                     all_query_data = np.concatenate((all_query_data, query_data), 0)
+                    all_x_hat = np.concatenate((all_x_hat, x_hat), 0)
             count = count + 1
             acc.append(acc1)
             d_acc.append(d_acc1)
@@ -1041,11 +919,18 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
 
     acc = np.array(acc)
     d_acc = np.array(d_acc)
-    all_drawn_data["sentence_ebd"] = all_sentence_ebd.tolist()
-    all_drawn_data["avg_sentence_ebd"] = all_avg_sentence_ebd.tolist()
-    all_drawn_data["label"] = all_sentence_label.tolist()
-    all_drawn_data["word_weight"] = all_word_weight.tolist()
-    all_drawn_data["query_data"] = all_query_data.tolist()
+    # all_drawn_data["sentence_ebd"] = all_sentence_ebd.tolist()
+    # all_drawn_data["avg_sentence_ebd"] = all_avg_sentence_ebd.tolist()
+    # all_drawn_data["label"] = all_sentence_label.tolist()
+    # all_drawn_data["word_weight"] = all_word_weight.tolist()
+    # all_drawn_data["query_data"] = all_query_data.tolist()
+    all_x = []
+    for _x in all_x_hat.tolist():
+        x_ = []
+        for x_x in _x:
+            x_.append(args.id2word[x_x])
+        all_x.append(x_)
+    all_drawn_data["x_hat"] = all_x
 
 
     if verbose:
@@ -1120,6 +1005,8 @@ def main():
     # load data
     train_data, val_data, test_data, vocab = loader.load_dataset(args)
 
+    args.id2word = vocab.itos
+
     # initialize model
     model = {}
     model["G"], model["D"] = get_embedding(vocab, args)
@@ -1135,11 +1022,11 @@ def main():
     test_acc, test_std, drawn_data = test(test_data, model, args,
                                           args.test_episodes)
 
-    # path_drawn = args.path_drawn_data
-    # with open(path_drawn, 'w') as f_w:
-    #     json.dump(drawn_data, f_w)
-    #     print("store drawn data finished.")
-    #
+    path_drawn = args.path_drawn_data
+    with open(path_drawn, 'w') as f_w:
+        json.dump(drawn_data, f_w)
+        print("store drawn data finished.")
+
     # file_path = r'../data/attention_data.json'
     # Print_Attention(file_path, vocab, model, args)
 
@@ -1191,7 +1078,7 @@ def Print_Attention(file_path, vocab, model, args):
     data2['label'] = []
     for i, temp in enumerate(data):
         # 将temp['text']统一变为[20]，长则截断，短则补0
-        if temp['text'].shape[0] < 20:
+        if temp['text'].shape[0] < 200:
             zero = torch.zeros(20 - temp['text'].shape[0])
             temp['text'] = np.concatenate((temp['text'], zero))
         else:
