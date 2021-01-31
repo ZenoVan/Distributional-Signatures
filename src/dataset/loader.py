@@ -8,13 +8,8 @@ import numpy as np
 import torch
 from torchtext.vocab import Vocab, Vectors
 
-from embedding.avg import AVG
-from embedding.cxtebd import CXTEBD
-from embedding.wordebd import WORDEBD
 import dataset.stats as stats
 from dataset.utils import tprint
-
-from transformers import BertTokenizer
 
 
 def _get_20newsgroup_classes(args):
