@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-data/
+#data/
 tmp-runs/
 *.py[cod]
 *$py.class
@@ -108,9 +108,9 @@ venv.bak/
 
 /.idea
 
-/pretrain_wordvec
+pretrain_wordvec/wiki.en.vec
 
-/data
+data/*.json
 
 /bin/tmp-runs
 
