@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from classifier.base import BASE
 
+from classifier.base import BASE
 
 class R2D2(BASE):
     '''
@@ -52,7 +52,7 @@ class R2D2(BASE):
 
         return Y_onehot
 
-    def forward(self, XS, YS, XQ, YQ, YQ_d, XSource, YSource_d, d_logits, d_source_logits):
+    def forward(self, XS, YS, XQ, YQ, XQ_logitsD, XSource_logitsD, YQ_d, YSource_d, query_data=None):
         '''
             @param XS (support x): support_size x ebd_dim
             @param YS (support y): support_size
@@ -75,17 +75,11 @@ class R2D2(BASE):
 
         acc = BASE.compute_acc(pred, YQ)
 
-        if self.args.embedding != 'mlad':
+        d_acc = (BASE.compute_acc(XQ_logitsD, YQ_d) + BASE.compute_acc(XSource_logitsD, YSource_d)) / 2
 
-            return acc, loss
-
+        if query_data is not None:
+            y_hat = torch.argmax(pred, dim=1)
+            X_hat = query_data[y_hat != YQ]
+            return acc, d_acc, loss, X_hat
         else:
-            d_loss = F.cross_entropy(d_logits, YQ_d)
-
-            d_source_loss = F.cross_entropy(d_source_logits, YSource_d)
-
-            all_loss = loss + d_loss + d_source_loss
-
-            d_acc = (BASE.compute_acc(d_logits, YQ_d) + BASE.compute_acc(d_source_logits, YSource_d)) / 2
-
-            return acc, d_acc, all_loss
+            return acc, d_acc, loss, loss

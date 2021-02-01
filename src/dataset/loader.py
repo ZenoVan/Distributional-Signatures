@@ -1,5 +1,3 @@
-import os
-import itertools
 import collections
 import json
 from collections import defaultdict
