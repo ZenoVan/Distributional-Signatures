@@ -1,20 +1,4 @@
-# Few-shot Text Classification with Distributional Signatures
-
-This repository contains the code and data for our ICLR 2020 paper:
-
-*Few-shot Text Classification with Distributional Signatures*. Yujia Bao, Menghua Wu, Shiyu Chang and Regina Barzilay.
-
-If you find this work useful and use it on your own research, please cite our paper.
-
-```
-@inproceedings{
-	bao2020fewshot,
-	title={Few-shot Text Classification with Distributional Signatures},
-	author={Yujia Bao and Menghua Wu and Shiyu Chang and Regina Barzilay},
-	booktitle={International Conference on Learning Representations},
-	year={2020}
-}
-```
+# Meta-Learning Adversarial Domain Adaptation Network for Few-Shot Text Classification
 
 ## Overview
 

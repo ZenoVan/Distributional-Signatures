@@ -15,7 +15,7 @@ def test_one(task, model, args):
     support, query = task
     # print("query_text.shape:", query['text'].shape)
 
-    if args.embedding != 'mlad':
+    if args.embedding != 'mlada':
 
         # Embedding the document
         XS = model['ebd'](support)
@@ -99,7 +99,7 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
                              desc=colored('Testing on val', 'yellow'))
     count = 0
     for task in sampled_tasks:
-        if args.embedding == 'mlad':
+        if args.embedding == 'mlada':
             acc1, d_acc1, sentence_ebd, avg_sentence_ebd, sentence_label, word_weight, query_data, x_hat = test_one(task, model, args)
             if count < 20:
                 if all_sentence_ebd is None:
@@ -129,17 +129,17 @@ def test(test_data, model, args, num_episodes, verbose=True, sampled_tasks=None)
     # all_drawn_data["label"] = all_sentence_label.tolist()
     # all_drawn_data["word_weight"] = all_word_weight.tolist()
     # all_drawn_data["query_data"] = all_query_data.tolist()
-    all_x = []
-    for _x in all_x_hat.tolist():
-        x_ = []
-        for x_x in _x:
-            x_.append(args.id2word[x_x])
-        all_x.append(x_)
-    all_drawn_data["x_hat"] = all_x
+    # all_x = []
+    # for _x in all_x_hat.tolist():
+    #     x_ = []
+    #     for x_x in _x:
+    #         x_.append(args.id2word[x_x])
+    #     all_x.append(x_)
+    # all_drawn_data["x_hat"] = all_x
 
 
     if verbose:
-        if args.embedding != 'mlad':
+        if args.embedding != 'mlada':
             print("{}, {:s} {:>7.4f}, {:s} {:>7.4f}".format(
                 datetime.datetime.now(),
                 colored("test acc mean", "blue"),

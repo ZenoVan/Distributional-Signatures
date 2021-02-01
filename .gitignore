@@ -118,5 +118,3 @@ data/*.json
 /bin/tmp-runs-pretrain
 
 src/id2word.npy
-
-assets/

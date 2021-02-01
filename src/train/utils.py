@@ -44,27 +44,3 @@ def get_norm(model):
     total_norm = total_norm ** 0.5
 
     return total_norm
-
-
-def load_model_state_dict(model, model_path):
-    # 初始化模型参数
-    model_dict = model.state_dict()                                    # 取出自己网络的参数字典
-    pretrained_dict = torch.load(model_path)# 加载预训练网络的参数字典
-    # 取出预训练网络的参数字典
-    keys = []
-    for k, v in pretrained_dict.items():
-           keys.append(k)
-
-    i = 0
-
-    # 自己网络和预训练网络结构一致的层，使用预训练网络对应层的参数初始化
-    print("_____________pretrain_parameters______________________________")
-    for k, v in model_dict.items():
-        if v.size() == pretrained_dict[keys[i]].size():
-            model_dict[k] = pretrained_dict[keys[i]]
-            print(model_dict[k])
-            i = i + 1
-        # print(model_dict[k])
-    print("___________________________________________________________")
-    model.load_state_dict(model_dict)
-    return model
