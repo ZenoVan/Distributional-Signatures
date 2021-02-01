@@ -1,28 +1,18 @@
 # Meta-Learning Adversarial Domain Adaptation Network for Few-Shot Text Classification
 
-## Overview
-
-Our goal is to improve few-shot classification performance by learning high-quality attention from the distributional signatures of the inputs. Given a particular episode, we extract relevant statistics from the source pool and the support set. Since these statistics only roughly approximate word importance for classification, we utilize an *attention generator* to translate them into high-quality attention that operates over words. This generated attention provides guidance for the downstream predictor, a *ridge regressor*, to quickly learn from a few labeled examples.
-
-For further details on the model and various baselines, please see `src/README.md`.
-
-<p align="center">
-<img src="assets/fig-metalearning.png" width=80% />
-</p>
-
 ## Data
 #### Download
 
-We ran experiments on a total of 6 datasets. You may download our processed data [here](https://people.csail.mit.edu/yujia/files/distributional-signatures/data.zip).
+We ran experiments on a total of 4 datasets. You may download our processed data [here](https://people.csail.mit.edu/yujia/files/distributional-signatures/data.zip).
 
 | Dataset | Notes |
 |---|---|
 | 20 Newsgroups ([link](http://qwone.com/~jason/20Newsgroups/ "20 Newsgroups")) | Processed data available. We used the `20news-18828` version, available at the link provided.
-| RCV1 ([link](https://trec.nist.gov/data/reuters/reuters.html "RCV1")) | Due to the licensing agreement, we cannot release the raw data. Instead, we provide a list of document IDs and labels. You may request the dataset from the link provided. |
 | Reuters-21578 ([link](https://kdd.ics.uci.edu/databases/reuters21578/reuters21578.html "Reuters")) | Processed data available. |
 | Amazon reviews ([link](http://jmcauley.ucsd.edu/data/amazon/ "Amazon")) | We used a subset of the product review data. Processed data available. |
 | HuffPost&nbsp;headlines&nbsp;([link](https://www.kaggle.com/rmisra/news-category-dataset "HuffPost")) | Processed data available. |
-| FewRel ([link](https://thunlp.github.io/fewrel.html "FewRel")) | Processed data available.
+
+Please download `wiki.en.vec` from [here](https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.vec) and put it under `pretrain_wordvec` folder.
 
 #### Format
 
@@ -33,9 +23,9 @@ We ran experiments on a total of 6 datasets. You may download our processed data
 ### Quickstart
 Run our model with default settings. By default we load data from `data/`.
 ```
-./bin/our.sh
+cd bin
+sh mlada.sh
 ```
-Scripts for other baselines may be found under `bin/`.
 
 ## Code
 `src/main.py` may be run with one of three modes: `train`, `test`, and `finetune`.
@@ -46,12 +36,9 @@ Scripts for other baselines may be found under `bin/`.
 
 #### Dependencies
 - Python 3.7
-- PyTorch 1.1.0
-- numpy 1.15.4
-- torchtext 0.4.0
-- pytorch-transformers 1.1.0
+- PyTorch 1.6.0
+- numpy 1.18.5
+- torchtext 0.7.0
 - termcolor 1.1.0
-- tqdm 4.32.2
-
-### Mac OS
-As tryambak007 pointed out, there is an error when using multiprocessing.Queue. Please check out his fork (https://github.com/tryambak007/Distributional-Signatures) for the fix.
+- tqdm 4.46.0
+- CUDA 10.2

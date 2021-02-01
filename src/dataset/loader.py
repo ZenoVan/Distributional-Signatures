@@ -81,46 +81,14 @@ def _get_amazon_classes(args):
     return train_classes, val_classes, test_classes
 
 
-def _get_rcv1_classes(args):
-    '''
-        @return list of classes associated with each split
-    '''
-
-    train_classes = [1, 2, 12, 15, 18, 20, 22, 25, 27, 32, 33, 34, 38, 39,
-                     40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
-                     54, 55, 56, 57, 58, 59, 60, 61, 66]
-    val_classes = [5, 24, 26, 28, 29, 31, 35, 23, 67, 36]
-    test_classes = [0, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 19, 21, 30, 37,
-                    62, 63, 64, 65, 68, 69, 70]
-
-    return train_classes, val_classes, test_classes
-
-
-def _get_fewrel_classes(args):
-    '''
-        @return list of classes associated with each split
-    '''
-    # head=WORK_OF_ART validation/test split
-    train_classes = [0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 19, 21,
-                     22, 24, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-                     39, 40, 41, 43, 44, 45, 46, 48, 49, 50, 52, 53, 56, 57, 58,
-                     59, 61, 62, 63, 64, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
-                     76, 77, 78]
-
-    val_classes = [7, 9, 17, 18, 20]
-    test_classes = [23, 29, 42, 47, 51, 54, 55, 60, 65, 79]
-
-    return train_classes, val_classes, test_classes
-
-
 def _get_huffpost_classes(args):
     '''
         @return list of classes associated with each split
     '''
 
-    val_classes = [32, 38, 28, 1, 2]
-    train_classes = [0, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 29, 33, 34, 35, 36, 37, 40]
-    test_classes = [39, 24, 8, 19, 5, 7, 6, 20, 21, 22, 23, 25, 26, 27, 30, 31]
+    val_classes = list(range(5))
+    train_classes = list(range(5, 25))
+    test_classes = list(range(25, 41))
 
     return train_classes, val_classes, test_classes
 
@@ -132,9 +100,7 @@ def _get_reuters_classes(args):
 
     train_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     val_classes = [15, 16, 17, 18, 19]
-    # val_classes = [20, 21, 22, 23, 24]
     test_classes = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-    # test_classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     return train_classes, val_classes, test_classes
 

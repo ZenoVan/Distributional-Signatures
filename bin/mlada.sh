@@ -40,8 +40,8 @@ python ../src/main.py \
     --n_test_class=$n_test_class \
     --train_episodes 100 \
     --k 1 \
-    --lr_g 1e-4 \
-    --lr_d 1e-4 \
-    --Comments "reuters" \
+    --lr_g 1e-3 \
+    --lr_d 1e-3 \
+    --Comments "20newsgroup" \
     --patience 15 \
     --seed 3 \
