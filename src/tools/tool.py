@@ -8,7 +8,6 @@ def parse_args():
     parser = argparse.ArgumentParser(
             description="Few Shot Text Classification with Distributional Signatures")
 
-    # data configuration
     parser.add_argument("--data_path", type=str,
                         default="data/reuters.json",
                         help="path to dataset")
@@ -23,12 +22,10 @@ def parse_args():
     parser.add_argument("--n_test_class", type=int, default=11,
                         help="number of meta-test classes")
 
-    # load bert embeddings for sent-level datasets (optional)
     parser.add_argument("--n_workers", type=int, default=10,
                         help="Num. of cores used for loading data. Set this "
                         "to zero if you want to use all the cpus.")
 
-    # task configuration
     parser.add_argument("--way", type=int, default=5,
                         help="#classes for each task")
     parser.add_argument("--shot", type=int, default=5,
@@ -36,7 +33,6 @@ def parse_args():
     parser.add_argument("--query", type=int, default=25,
                         help="#query examples for each class for each task")
 
-    # train/test configuration
     parser.add_argument("--train_epochs", type=int, default=1000,
                         help="max num of training epochs")
     parser.add_argument("--train_episodes", type=int, default=100,
@@ -46,7 +42,6 @@ def parse_args():
     parser.add_argument("--test_episodes", type=int, default=1000,
                         help="#tasks sampled during each testing epoch")
 
-    # base word embedding
     parser.add_argument("--wv_path", type=str,
                         default='../pretrain_wordvec',
                         help="path to word vector cache")
@@ -55,8 +50,6 @@ def parse_args():
     parser.add_argument("--finetune_ebd", action="store_true", default=False,
                         help=("Finetune embedding during meta-training"))
 
-    # training options
-    # model options
     parser.add_argument("--embedding", type=str, default="mlada",
                         help=("document embedding method."))
     parser.add_argument("--classifier", type=str, default="r2d2",

@@ -9,7 +9,6 @@ class ModelD(nn.Module):
         self.args = args
 
         self.ebd = ebd
-        # self.aux = get_embedding(args)
 
         self.d = nn.Sequential(
                 nn.Dropout(0.2),
@@ -24,7 +23,6 @@ class ModelD(nn.Module):
 
     def forward(self, reverse_feature):
 
-        # 通过判别器
         logits = self.d(reverse_feature)  # [b, 500] -> [b, 2]
 
         return logits

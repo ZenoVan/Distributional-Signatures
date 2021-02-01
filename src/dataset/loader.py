@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from torchtext.vocab import Vocab, Vectors
 
-import dataset.stats as stats
 from dataset.utils import tprint
 
 
@@ -382,7 +381,6 @@ def load_dataset(args):
     tprint('#train {}, #val {}, #test {}'.format(
         len(train_data), len(val_data), len(test_data)))
 
-
     # Convert everything into np array for fast data loading
     train_data = _data_to_nparray(train_data, vocab, args)
     val_data = _data_to_nparray(val_data, vocab, args)
@@ -390,7 +388,5 @@ def load_dataset(args):
 
     train_data['is_train'] = True
     # this tag is used for distinguishing train/val/test when creating source pool
-
-    stats.precompute_stats(train_data, val_data, test_data, args)
 
     return train_data, val_data, test_data, vocab

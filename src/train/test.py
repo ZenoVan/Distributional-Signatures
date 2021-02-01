@@ -40,14 +40,12 @@ def test_one(task, model, args):
         YQ_d = torch.ones(query['label'].shape, dtype=torch.long).to(query['label'].device)
         # print('YQ', set(YQ.numpy()))
 
-        # 这步主要是为了匹配模型输入，下面这几个参数没有什么用
         XSource, XSource_inputD, _ = model['G'](query, flag='query')
         YSource_d = torch.zeros(query['label'].shape, dtype=torch.long).to(query['label'].device)
 
         XQ_logitsD = model['D'](XQ_inputD)
         XSource_logitsD = model['D'](XSource_inputD)
 
-        # 把原始数据变成长度都为50，为了可视化的，不影响最终结果
         query_data = query['text']
         if query_data.shape[1] < 50:
             zero = torch.zeros((query_data.shape[0], 50 - query_data.shape[1]))
@@ -66,7 +64,6 @@ def test_one(task, model, args):
         all_avg_sentence_ebd = XQ_avg
         all_label = YQ
         # print(all_sentence_ebd.shape, all_avg_sentence_ebd.shape, all_label.shape)
-
 
         return acc, d_acc, all_sentence_ebd.cpu().detach().numpy(), all_avg_sentence_ebd.cpu().detach().numpy(), all_label.cpu().detach().numpy(), XQ_inputD.cpu().detach().numpy(), query_data.cpu().detach().numpy(), x_hat.cpu().detach().numpy()
 

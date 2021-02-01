@@ -51,7 +51,6 @@ def Print_Attention(file_path, vocab, model, args):
     data2['text_len'] = []
     data2['label'] = []
     for i, temp in enumerate(data):
-        # 将temp['text']统一变为[20]，长则截断，短则补0
         if temp['text'].shape[0] < 200:
             zero = torch.zeros(20 - temp['text'].shape[0])
             temp['text'] = np.concatenate((temp['text'], zero))
